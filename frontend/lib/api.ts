@@ -231,3 +231,87 @@ export async function updateLetter(id: string, payload: { content?: string; addT
     body: JSON.stringify(payload),
   });
 }
+
+export interface TrackerEntryApi {
+  id: string;
+  grantId: string;
+  grantTitle: string;
+  grantProvider: string;
+  grantAmount: number | string | null;
+  grantCurrency: string | null;
+  grantDeadline: string;
+  status: string; // "Draft", "Applied", "Under Review", "Won", "Rejected"
+  appliedDate: string | null;
+  notes: string;
+  coverLetterStatus: string;
+  coverLetterId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrackerCreatePayload {
+  grantId: string;
+  status?: string;
+  notes?: string;
+  appliedDate?: string;
+}
+
+export interface TrackerUpdatePayload {
+  status?: string;
+  notes?: string;
+  appliedDate?: string;
+}
+
+export interface DashboardStatsApi {
+  totalApplied: number;
+  winRate: number;
+  avgMatchScore: number;
+  grantsBookmarked: number;
+  totalWonAmount: number | string | null;
+  totalAppliedAmount: number | string | null;
+  upcomingDeadlines: {
+    trackerId: string;
+    grantId: string;
+    grantTitle: string;
+    provider: string;
+    deadline: string;
+    daysLeft: number;
+  }[];
+  recentActivities: {
+    id: string;
+    description: string;
+    timeAgo: string;
+  }[];
+}
+
+export async function listTracker() {
+  return apiRequest<TrackerEntryApi[]>("/api/tracker", {
+    method: "GET",
+  });
+}
+
+export async function createTracker(payload: TrackerCreatePayload) {
+  return apiRequest<TrackerEntryApi>("/api/tracker", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateTracker(id: string, payload: TrackerUpdatePayload) {
+  return apiRequest<TrackerEntryApi>(`/api/tracker/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTracker(id: string) {
+  return apiRequest<void>(`/api/tracker/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getDashboardStats() {
+  return apiRequest<DashboardStatsApi>("/api/tracker/stats", {
+    method: "GET",
+  });
+}

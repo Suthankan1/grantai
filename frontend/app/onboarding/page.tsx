@@ -40,6 +40,39 @@ const countries = [
   { name: "India", code: "IN", flag: "🇮🇳" },
   { name: "Brazil", code: "BR", flag: "🇧🇷" },
   { name: "Australia", code: "AU", flag: "🇦🇺" },
+  { name: "Singapore", code: "SG", flag: "🇸🇬" },
+  { name: "New Zealand", code: "NZ", flag: "🇳🇿" },
+  { name: "Japan", code: "JP", flag: "🇯🇵" },
+  { name: "Spain", code: "ES", flag: "🇪🇸" },
+  { name: "Italy", code: "IT", flag: "🇮🇹" },
+  { name: "Mexico", code: "MX", flag: "🇲🇽" },
+  { name: "Sweden", code: "SE", flag: "🇸🇪" },
+  { name: "Norway", code: "NO", flag: "🇳🇴" },
+  { name: "Switzerland", code: "CH", flag: "🇨🇭" },
+  { name: "Ireland", code: "IE", flag: "🇮🇪" },
+  { name: "Ghana", code: "GH", flag: "🇬🇭" },
+  { name: "Egypt", code: "EG", flag: "🇪🇬" },
+  { name: "Pakistan", code: "PK", flag: "🇵🇰" },
+  { name: "Bangladesh", code: "BD", flag: "🇧🇩" },
+  { name: "China", code: "CN", flag: "🇨🇳" },
+  { name: "Argentina", code: "AR", flag: "🇦🇷" },
+  { name: "Colombia", code: "CO", flag: "🇨🇴" },
+  { name: "Chile", code: "CL", flag: "🇨🇱" },
+  { name: "Belgium", code: "BE", flag: "🇧🇪" },
+  { name: "Austria", code: "AT", flag: "🇦🇹" },
+  { name: "Denmark", code: "DK", flag: "🇩🇰" },
+  { name: "Finland", code: "FI", flag: "🇫🇮" },
+  { name: "Portugal", code: "PT", flag: "🇵🇹" },
+  { name: "Greece", code: "GR", flag: "🇬🇷" },
+  { name: "Turkey", code: "TR", flag: "🇹🇷" },
+  { name: "Saudi Arabia", code: "SA", flag: "🇸🇦" },
+  { name: "United Arab Emirates", code: "AE", flag: "🇦🇪" },
+  { name: "South Korea", code: "KR", flag: "🇰🇷" },
+  { name: "Malaysia", code: "MY", flag: "🇲🇾" },
+  { name: "Indonesia", code: "ID", flag: "🇮🇩" },
+  { name: "Philippines", code: "PH", flag: "🇵🇭" },
+  { name: "Thailand", code: "TH", flag: "🇹🇭" },
+  { name: "Vietnam", code: "VN", flag: "🇻🇳" },
 ] as const;
 
 const fieldsOfStudy = [
@@ -148,7 +181,7 @@ function CountryPicker({
         >
           <span className="flex items-center gap-2">
             <span>{selected ? selected.flag : "🌍"}</span>
-            {selected ? selected.name : "Search and select a country"}
+            {selected ? selected.name : value || "Search and select a country"}
           </span>
           <ChevronDown className="h-4 w-4 text-[var(--color-muted)]" />
         </button>
@@ -183,6 +216,19 @@ function CountryPicker({
                     <span className="text-xs text-[var(--color-muted)]">{country.code}</span>
                   </button>
                 ))
+              ) : query.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[#00D4AA] hover:bg-[rgba(0,212,170,0.08)]"
+                >
+                  <span>🌍</span>
+                  <span>Use &quot;{query.trim()}&quot; as custom country</span>
+                </button>
               ) : (
                 <p className="px-3 py-2 text-sm text-[var(--color-muted)]">No matching countries.</p>
               )}
@@ -255,6 +301,18 @@ function SearchableFieldSelect({
                     {field}
                   </button>
                 ))
+              ) : query.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[#00D4AA] hover:bg-[rgba(0,212,170,0.08)]"
+                >
+                  <span>Use &quot;{query.trim()}&quot; as custom field</span>
+                </button>
               ) : (
                 <p className="px-3 py-2 text-sm text-[var(--color-muted)]">No matching fields.</p>
               )}
@@ -494,6 +552,7 @@ export default function OnboardingPage() {
               onChange={(value) => setValue("country", value, { shouldValidate: true })}
               error={errors.country?.message}
             />
+            <input type="hidden" {...register("country")} />
           </div>
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="photo">Profile photo</Label>
@@ -543,6 +602,7 @@ export default function OnboardingPage() {
               onChange={(value) => setValue("fieldOfStudy", value, { shouldValidate: true })}
               error={errors.fieldOfStudy?.message}
             />
+            <input type="hidden" {...register("fieldOfStudy")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="graduationYear" required>Graduation year</Label>
@@ -567,13 +627,16 @@ export default function OnboardingPage() {
 
     if (step === 3) {
       return (
-        <TagInput
-          label="Research interests"
-          description="Press Enter to add each interest. Minimum 3 required."
-          tags={values.researchInterests}
-          onChange={(tags) => setValue("researchInterests", tags, { shouldValidate: true })}
-          error={errors.researchInterests?.message}
-        />
+        <div className="space-y-4">
+          <TagInput
+            label="Research interests"
+            description="Press Enter to add each interest. Minimum 3 required."
+            tags={values.researchInterests}
+            onChange={(tags) => setValue("researchInterests", tags, { shouldValidate: true })}
+            error={errors.researchInterests?.message}
+          />
+          <input type="hidden" {...register("researchInterests")} />
+        </div>
       );
     }
 
@@ -603,12 +666,13 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
+            <input type="hidden" {...register("grantTypes")} />
             {errors.grantTypes && <p className="text-xs text-red-400">{errors.grantTypes.message}</p>}
           </div>
 
           <div className="space-y-3">
             <Label>Preferred countries</Label>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 max-h-72 overflow-y-auto pr-1 py-1">
               {countries.map((country) => {
                 const selected = values.preferredCountries.includes(country.name);
                 return (
@@ -632,6 +696,7 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
+            <input type="hidden" {...register("preferredCountries")} />
             {errors.preferredCountries && <p className="text-xs text-red-400">{errors.preferredCountries.message}</p>}
           </div>
 

@@ -79,6 +79,13 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- SendGrid -->
+    <dependency>
+      <groupId>com.sendgrid</groupId>
+      <artifactId>sendgrid-java</artifactId>
+      <version>4.10.1</version>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

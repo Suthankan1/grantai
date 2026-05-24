@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface CoverLetterRepository extends JpaRepository<CoverLetter, String> {
     Optional<CoverLetter> findByIdAndUser_Id(String id, String userId);
     List<CoverLetter> findAllByUser_IdOrderByUpdatedAtDesc(String userId);
+    Optional<CoverLetter> findByUser_IdAndGrantId(String userId, String grantId);
 }
