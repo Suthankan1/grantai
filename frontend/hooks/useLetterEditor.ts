@@ -218,6 +218,9 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
         }
 
         isStreamDoneRef.current = true;
+        if (!streamingTextRef.current && queueRef.current) {
+          setStreamingText(queueRef.current);
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to generate letter.";
         setStatusMessage(message);

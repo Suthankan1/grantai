@@ -25,7 +25,7 @@ class Settings:
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite"))
     gemini_match_candidate_limit: int = field(default_factory=lambda: int(os.getenv("GEMINI_MATCH_CANDIDATE_LIMIT", "4")))
     gemini_match_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_MATCH_TIMEOUT_SECONDS", "12")))
-    gemini_letter_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_LETTER_TIMEOUT_SECONDS", "20")))
+    gemini_letter_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_LETTER_TIMEOUT_SECONDS", "8")))
     gemini_interview_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_INTERVIEW_TIMEOUT_SECONDS", "20")))
     semantic_match_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("SEMANTIC_MATCH_TIMEOUT_SECONDS", "5")))
     embedding_model: str = field(default_factory=lambda: os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
