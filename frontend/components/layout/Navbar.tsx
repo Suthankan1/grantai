@@ -4,12 +4,42 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { Zap, Menu, X, ChevronDown } from "lucide-react";
+import { Zap, Menu, X, ChevronDown, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/auth-store";
 import { authLogout } from "@/lib/api";
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="h-9 w-9 shrink-0" />;
+  }
+
+  return (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="flex items-center justify-center h-9 w-9 rounded-lg border border-[var(--border-default)] text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[rgba(240,240,255,0.06)] transition-all duration-200 shrink-0"
+      aria-label="Toggle dark mode"
+      type="button"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-4.5 w-4.5 text-amber-400" />
+      ) : (
+        <Moon className="h-4.5 w-4.5 text-purple-400" />
+      )}
+    </button>
+  );
+}
+
 
 interface NavLink {
   label: string;
@@ -33,7 +63,14 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { scrollY } = useScroll();
 
-  const hideOnRoutes = pathname.startsWith("/auth") || pathname.startsWith("/onboarding");
+  const hideOnRoutes =
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/grants") ||
+    pathname.startsWith("/letters") ||
+    pathname.startsWith("/tracker") ||
+    pathname.startsWith("/interview");
 
   React.useEffect(() => {
     setMobileOpen(false);
@@ -141,6 +178,7 @@ export function Navbar() {
 
             {/* Auth buttons */}
             <div className="hidden md:flex items-center gap-3 shrink-0">
+              <ThemeToggle />
               {isAuthenticated ? (
                 <>
                   <Button variant="outline" size="sm" asChild id="nav-dashboard">
@@ -326,6 +364,12 @@ function MobileMenu({
           </motion.div>
         ))}
       </nav>
+
+      {/* Theme Toggle in Mobile */}
+      <div className="flex items-center justify-between px-4 py-2 mt-4">
+        <span className="text-sm font-medium text-[var(--color-muted)]">Appearance</span>
+        <ThemeToggle />
+      </div>
 
       {/* Divider */}
       <div className="mt-6 mb-6 h-px bg-[var(--border-default)]" />

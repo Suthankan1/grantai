@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { fontVariables } from "@/lib/fonts";
 import { Navbar } from "@/components/layout/Navbar";
+import { DemoBanner } from "@/components/layout/DemoBanner";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
+
 
 export const metadata: Metadata = {
   title: {
@@ -95,7 +98,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${fontVariables} antialiased dark`}
+        className={`${fontVariables} antialiased`}
         style={{
           // Ensure CSS vars are set immediately (no FOUC)
           backgroundColor: "var(--bg-obsidian)",
@@ -111,13 +114,18 @@ export default function RootLayout({
         </a>
 
         <QueryProvider>
-          {/* Global navigation */}
-          <Navbar />
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            {/* Guided Demo Mode Alert Banner */}
+            <DemoBanner />
 
-          {/* Page content */}
-          <main id="main-content" tabIndex={-1}>
-            {children}
-          </main>
+            {/* Global navigation */}
+            <Navbar />
+
+            {/* Page content */}
+            <main id="main-content" tabIndex={-1}>
+              {children}
+            </main>
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

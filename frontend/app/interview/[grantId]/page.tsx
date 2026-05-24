@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,24 +11,21 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
-  ExternalLink,
-  Mic,
   MicOff,
   Play,
   RotateCcw,
   Sparkles,
-  Award,
   AlertTriangle,
   Lightbulb,
   BookOpen,
-  CalendarDays,
   FileText,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Menu,
 } from "lucide-react";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   getGrantById,
@@ -85,6 +82,7 @@ function getScoreBadgeStyle(score: number) {
 }
 
 export default function InterviewPrepPage() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
   const params = useParams<{ grantId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -158,8 +156,9 @@ export default function InterviewPrepPage() {
         } else {
           throw new Error("No questions returned by generator.");
         }
-      } catch (err: any) {
-        setQuestionsError(err.message || "Failed to generate interview questions. Please try again.");
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "Failed to generate interview questions. Please try again.";
+        setQuestionsError(errMsg);
       } finally {
         setLoadingQuestions(false);
       }
@@ -272,11 +271,43 @@ export default function InterviewPrepPage() {
 
   const feedbackItemVariants = {
     hidden: { y: 15, opacity: 0 },
-    show: { y: 0, opacity: 1, transition: { type: "spring" as any, stiffness: 100 } },
+    show: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } },
   };
 
   return (
-    <section className="relative overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
+      {/* Sidebar Component */}
+      <Sidebar
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
+
+      {/* Main Panel */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative z-10">
+        
+        {/* Sleek radial lights */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(108,71,255,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.06),_transparent_32%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)] -z-10" />
+        <div className="absolute inset-0 bg-grid opacity-25 -z-10" aria-hidden="true" />
+
+        {/* Mobile Header */}
+        <header className="flex h-16 items-center justify-between border-b border-[rgba(240,240,255,0.05)] px-4 bg-[rgba(8,8,16,0.5)] backdrop-blur-md md:hidden shrink-0">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center shadow-glow-sm">
+              <span className="text-[10px] font-bold text-white">G</span>
+            </div>
+            <span className="text-sm font-semibold tracking-tight text-white">GrantAI</span>
+          </Link>
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(240,240,255,0.06)] text-[var(--color-muted)] hover:text-white"
+            aria-label="Open Menu"
+            type="button"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </header>
+
+        <section className="relative overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(108,71,255,0.15),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.1),_transparent_24%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)]" />
       <div className="absolute inset-0 bg-grid opacity-30" aria-hidden="true" />
 
@@ -490,7 +521,7 @@ export default function InterviewPrepPage() {
               </div>
             ) : sessionsQuery.data && sessionsQuery.data.length > 0 ? (
               <div className="space-y-4">
-                {sessionsQuery.data.map((session, sIdx) => {
+                {sessionsQuery.data.map((session) => {
                   let questionsList = [];
                   let answersMap = {};
                   try {
@@ -812,14 +843,22 @@ export default function InterviewPrepPage() {
                   {(() => {
                     let pastQuestions: InterviewQuestionApi[] = [];
                     let pastAnswers: { [key: number]: string } = {};
-                    let pastFeedbacks: { [key: number]: any } = {};
+                    let pastFeedbacks: {
+                      [key: number]: {
+                        score: number;
+                        strengths: string[];
+                        areas_to_improve: string[];
+                        suggested_improvements: string[];
+                        suggested_answer: string;
+                      };
+                    } = {};
 
                     try {
                       pastQuestions = JSON.parse(selectedPastSession.questionsJson || "[]");
                       pastAnswers = JSON.parse(selectedPastSession.answersJson || "{}");
                       pastFeedbacks = JSON.parse(selectedPastSession.feedbackJson || "{}");
-                    } catch (e) {
-                      console.error(e);
+                    } catch {
+                      // ignore parse errors
                     }
 
                     return (
@@ -902,5 +941,7 @@ export default function InterviewPrepPage() {
         </AnimatePresence>
       </div>
     </section>
+      </div>
+    </div>
   );
 }

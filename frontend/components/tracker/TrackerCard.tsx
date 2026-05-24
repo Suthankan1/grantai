@@ -12,7 +12,7 @@ interface TrackerCardProps {
   onClick: (card: TrackerEntryApi) => void;
 }
 
-export default function TrackerCard({ card, onClick }: TrackerCardProps) {
+const TrackerCard = React.memo(function TrackerCard({ card, onClick }: TrackerCardProps) {
   const {
     attributes,
     listeners,
@@ -201,4 +201,6 @@ export default function TrackerCard({ card, onClick }: TrackerCardProps) {
       )}
     </div>
   );
-}
+});
+
+export default TrackerCard;

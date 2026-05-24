@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CalendarDays, ExternalLink, Sparkles } from "lucide-react";
@@ -85,7 +86,7 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-export function GrantCard({ grant }: { grant: GrantSummaryApi }) {
+export const GrantCard = React.memo(function GrantCard({ grant }: { grant: GrantSummaryApi }) {
   const style = TYPE_STYLES[grant.grantType] ?? TYPE_STYLES["Scholarship"];
   const remainingDays = daysLeft(grant.deadline);
   const urgent = remainingDays < 30;
@@ -160,4 +161,4 @@ export function GrantCard({ grant }: { grant: GrantSummaryApi }) {
       </Card>
     </motion.article>
   );
-}
+});

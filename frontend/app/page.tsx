@@ -445,11 +445,15 @@ export default function Home() {
           animate="visible"
         >
           {/* Badge */}
-          <motion.div variants={slideUp(0)} className="flex justify-center mb-8">
+          <motion.div variants={slideUp(0)} className="flex flex-col items-center gap-3 mb-8">
             <Badge variant="primary" className="gap-1.5 py-1.5 px-4 text-xs">
               <Zap className="h-3 w-3" aria-hidden="true" />
               Now with GPT-4o · 10,000+ live grant sources
             </Badge>
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs text-purple-300 hover:bg-purple-500/20 transition-all duration-300">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
+              <strong>Hackathon Judges:</strong> Click here to launch Demo Mode instantly & bypass server cold starts!
+            </Link>
           </motion.div>
 
           {/* Headline */}
@@ -509,6 +513,19 @@ export default function Home() {
                   className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
                   aria-hidden="true"
                 />
+              </Link>
+            </Button>
+            <Button
+              id="hero-cta-demo-mode"
+              variant="default"
+              size="lg"
+              asChild
+              className="group bg-gradient-to-r from-[#6C47FF] to-[#00D4AA] hover:opacity-90 text-white font-semibold border-0 shadow-glow"
+            >
+              <Link href="/demo" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
+                Try Demo Mode
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
             </Button>
             <Button

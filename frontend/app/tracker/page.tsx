@@ -17,11 +17,13 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Menu } from "lucide-react";
+import Link from "next/link";
 import { listTracker, updateTracker, deleteTracker, createTracker, TrackerEntryApi } from "@/lib/api";
 import TrackerCard from "@/components/tracker/TrackerCard";
 import DetailDrawer from "@/components/tracker/DetailDrawer";
 import AddApplicationModal from "@/components/tracker/AddApplicationModal";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 
 const COLUMNS = [
@@ -40,6 +42,9 @@ export default function TrackerPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [targetColumnStatus, setTargetColumnStatus] = useState("Draft");
+
+  // Responsiveness state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Sensors for dnd-kit
   const sensors = useSensors(
@@ -278,141 +283,171 @@ export default function TrackerPage() {
   }
 
   return (
-    <section className="relative min-h-[calc(100svh-4rem)] overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
-      {/* Background aesthetics */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(108,71,255,0.18),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.08),_transparent_32%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)]" />
-      <div className="absolute inset-0 bg-grid opacity-30" aria-hidden="true" />
+    <div className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
+      {/* Sidebar navigation component */}
+      <Sidebar
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+      {/* Main Panel */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative z-10">
         
-        {/* Page Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[rgba(240,240,255,0.04)] pb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-500/10 text-xs font-bold text-purple-400 border border-purple-500/20">A</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-muted)]">GrantAI Platform</span>
+        {/* Sleek radial lights */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(108,71,255,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.06),_transparent_32%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)] -z-10" />
+        <div className="absolute inset-0 bg-grid opacity-25 -z-10" aria-hidden="true" />
+
+        {/* Mobile Header with Hamburger */}
+        <header className="flex h-16 items-center justify-between border-b border-[rgba(240,240,255,0.05)] px-4 bg-[rgba(8,8,16,0.5)] backdrop-blur-md md:hidden shrink-0">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center shadow-glow-sm">
+              <span className="text-[10px] font-bold text-white">G</span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Application Tracker
-            </h1>
-            <p className="mt-1.5 text-xs text-[var(--color-muted)]">
-              Drag-and-drop applications across pipelines. Track deadline thresholds, draft cover letters, and prepare mock presentations.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button className="rounded-xl text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white shadow-lg" onClick={() => handlePlusClick("Draft")}>
-              <Plus className="mr-1.5 h-4 w-4" /> Add Application
-            </Button>
-          </div>
-        </div>
+            <span className="text-sm font-semibold tracking-tight text-white">GrantAI</span>
+          </Link>
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(240,240,255,0.06)] text-[var(--color-muted)] hover:text-white"
+            aria-label="Open Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </header>
 
-        {/* Kanban Board DndContext */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-5 min-h-[600px] items-start pb-10">
-            {COLUMNS.map((column) => {
-              const columnCards = cardsByColumn[column.id] || [];
+        {/* Content Area */}
+        <section className="relative min-h-[calc(100svh-4rem)] overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+          <div className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+            
+            {/* Page Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[rgba(240,240,255,0.04)] pb-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-500/10 text-xs font-bold text-purple-400 border border-purple-500/20">A</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-muted)]">GrantAI Platform</span>
+                </div>
+                <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  Application Tracker
+                </h1>
+                <p className="mt-1.5 text-xs text-[var(--color-muted)]">
+                  Drag-and-drop applications across pipelines. Track deadline thresholds, draft cover letters, and prepare mock presentations.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button className="rounded-xl text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white shadow-lg" onClick={() => handlePlusClick("Draft")}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Add Application
+                </Button>
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={column.id}
-                  className={`group/col flex flex-col rounded-3xl border border-[var(--border-default)] bg-[rgba(10,10,18,0.35)] p-4 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-[rgba(240,240,255,0.06)] min-h-[550px]`}
-                >
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between pb-3.5 border-b border-[rgba(240,240,255,0.03)] mb-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-bold tracking-wide text-white uppercase">
-                          {column.label}
-                        </h3>
-                        {/* Count Badge */}
-                        <span className="rounded-md bg-[rgba(240,240,255,0.05)] px-2 py-0.5 text-[10px] font-bold text-[rgba(240,240,255,0.65)] border border-[rgba(240,240,255,0.08)]">
-                          {columnCards.length}
-                        </span>
+            {/* Kanban Board DndContext */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-5 min-h-[600px] items-start pb-10">
+                {COLUMNS.map((column) => {
+                  const columnCards = cardsByColumn[column.id] || [];
+
+                  return (
+                    <div
+                      key={column.id}
+                      className={`group/col flex flex-col rounded-3xl border border-[var(--border-default)] bg-[rgba(10,10,18,0.35)] p-4 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-[rgba(240,240,255,0.06)] min-h-[550px]`}
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between pb-3.5 border-b border-[rgba(240,240,255,0.03)] mb-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xs font-bold tracking-wide text-white uppercase">
+                              {column.label}
+                            </h3>
+                            {/* Count Badge */}
+                            <span className="rounded-md bg-[rgba(240,240,255,0.05)] px-2 py-0.5 text-[10px] font-bold text-[rgba(240,240,255,0.65)] border border-[rgba(240,240,255,0.08)]">
+                              {columnCards.length}
+                            </span>
+                          </div>
+
+                          {/* Aggregate totals intelligence */}
+                          {column.id === "Won" && wonAmount > 0 && (
+                            <span className="text-[10px] font-semibold text-emerald-400">
+                              Won: {formatAggregate(wonAmount)}
+                            </span>
+                          )}
+                          {column.id === "Applied" && appliedAmount > 0 && (
+                            <span className="text-[10px] font-semibold text-purple-400">
+                              Applied: {formatAggregate(appliedAmount)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Column Quick Add Button */}
+                        <button
+                          onClick={() => handlePlusClick(column.id)}
+                          className="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[rgba(240,240,255,0.05)] hover:text-white transition-colors"
+                        >
+                          <Plus className="h-4.5 w-4.5" />
+                        </button>
                       </div>
 
-                      {/* Aggregate totals intelligence */}
-                      {column.id === "Won" && wonAmount > 0 && (
-                        <span className="text-[10px] font-semibold text-emerald-400">
-                          Won: {formatAggregate(wonAmount)}
-                        </span>
-                      )}
-                      {column.id === "Applied" && appliedAmount > 0 && (
-                        <span className="text-[10px] font-semibold text-purple-400">
-                          Applied: {formatAggregate(appliedAmount)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Column Quick Add Button */}
-                    <button
-                      onClick={() => handlePlusClick(column.id)}
-                      className="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[rgba(240,240,255,0.05)] hover:text-white transition-colors"
-                    >
-                      <Plus className="h-4.5 w-4.5" />
-                    </button>
-                  </div>
-
-                  {/* Cards container using SortableContext */}
-                  <SortableContext
-                    items={columnCards.map((c) => c.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div
-                      id={column.id}
-                      className="flex flex-col gap-3.5 overflow-y-auto max-h-[550px] pr-1.5 custom-scrollbar flex-1 pb-6"
-                    >
-                      {columnCards.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-dashed border-[rgba(240,240,255,0.04)] bg-[rgba(240,240,255,0.005)]">
-                          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Empty column</span>
+                      {/* Cards container using SortableContext */}
+                      <SortableContext
+                        items={columnCards.map((c) => c.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div
+                          id={column.id}
+                          className="flex flex-col gap-3.5 overflow-y-auto max-h-[550px] pr-1.5 custom-scrollbar flex-1 pb-6"
+                        >
+                          {columnCards.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-dashed border-[rgba(240,240,255,0.04)] bg-[rgba(240,240,255,0.005)]">
+                              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Empty column</span>
+                            </div>
+                          ) : (
+                            columnCards.map((card) => (
+                              <TrackerCard
+                                key={card.id}
+                                card={card}
+                                onClick={handleCardClick}
+                              />
+                            ))
+                          )}
                         </div>
-                      ) : (
-                        columnCards.map((card) => (
-                          <TrackerCard
-                            key={card.id}
-                            card={card}
-                            onClick={handleCardClick}
-                          />
-                        ))
-                      )}
+                      </SortableContext>
                     </div>
-                  </SortableContext>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+
+              {/* Draggable Overlay Replica */}
+              <DragOverlay>
+                {activeDragCard ? (
+                  <div className="scale-105 rotate-1 shadow-2xl border-purple-500/50">
+                    <TrackerCard card={activeDragCard} onClick={() => {}} />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
 
-          {/* Draggable Overlay Replica */}
-          <DragOverlay>
-            {activeDragCard ? (
-              <div className="scale-105 rotate-1 shadow-2xl border-purple-500/50">
-                <TrackerCard card={activeDragCard} onClick={() => {}} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+          {/* Slide-in Detail Drawer */}
+          <DetailDrawer
+            card={selectedCard}
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            onUpdate={handleDetailUpdate}
+            onDelete={handleDetailDelete}
+          />
+
+          {/* Add Tracker Application Modal */}
+          <AddApplicationModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            columnStatus={targetColumnStatus}
+            onCreate={handleAddCreate}
+          />
+        </section>
       </div>
-
-      {/* Slide-in Detail Drawer */}
-      <DetailDrawer
-        card={selectedCard}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        onUpdate={handleDetailUpdate}
-        onDelete={handleDetailDelete}
-      />
-
-      {/* Add Tracker Application Modal */}
-      <AddApplicationModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        columnStatus={targetColumnStatus}
-        onCreate={handleAddCreate}
-      />
-    </section>
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { z } from "zod";
@@ -427,6 +428,15 @@ export default function OnboardingPage() {
   const values = watch();
 
   useEffect(() => {
+    register("country");
+    register("profilePhotoUrl");
+    register("fieldOfStudy");
+    register("researchInterests");
+    register("grantTypes");
+    register("preferredCountries");
+  }, [register]);
+
+  useEffect(() => {
     if (!isAuthenticated && !user) {
       router.replace("/auth/login");
     }
@@ -552,13 +562,12 @@ export default function OnboardingPage() {
               onChange={(value) => setValue("country", value, { shouldValidate: true })}
               error={errors.country?.message}
             />
-            <input type="hidden" {...register("country")} />
           </div>
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="photo">Profile photo</Label>
             <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] px-6 py-8 text-center hover:border-[var(--border-strong)]">
               {photoPreview ? (
-                <img src={photoPreview} alt="Profile preview" className="h-24 w-24 rounded-full object-cover ring-4 ring-[rgba(108,71,255,0.2)]" />
+                <Image src={photoPreview} alt="Profile preview" width={96} height={96} className="h-24 w-24 rounded-full object-cover ring-4 ring-[rgba(108,71,255,0.2)]" unoptimized />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[rgba(108,71,255,0.12)] text-[#9B73FF]">
                   <ImagePlus className="h-10 w-10" />
@@ -573,7 +582,6 @@ export default function OnboardingPage() {
                 <Upload className="h-3.5 w-3.5" /> Choose file
               </span>
             </label>
-            <input type="hidden" {...register("profilePhotoUrl")} />
           </div>
         </div>
       );
@@ -602,7 +610,6 @@ export default function OnboardingPage() {
               onChange={(value) => setValue("fieldOfStudy", value, { shouldValidate: true })}
               error={errors.fieldOfStudy?.message}
             />
-            <input type="hidden" {...register("fieldOfStudy")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="graduationYear" required>Graduation year</Label>
@@ -635,7 +642,6 @@ export default function OnboardingPage() {
             onChange={(tags) => setValue("researchInterests", tags, { shouldValidate: true })}
             error={errors.researchInterests?.message}
           />
-          <input type="hidden" {...register("researchInterests")} />
         </div>
       );
     }
@@ -666,7 +672,6 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
-            <input type="hidden" {...register("grantTypes")} />
             {errors.grantTypes && <p className="text-xs text-red-400">{errors.grantTypes.message}</p>}
           </div>
 
@@ -696,7 +701,6 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
-            <input type="hidden" {...register("preferredCountries")} />
             {errors.preferredCountries && <p className="text-xs text-red-400">{errors.preferredCountries.message}</p>}
           </div>
 

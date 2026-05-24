@@ -73,6 +73,47 @@
   color-scheme: dark;
 }
 
+.light, :root:not(.dark), :root[data-theme='light'] {
+  /* Core palette */
+  --bg-obsidian: #F6F6F9;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #EEEDF2;
+  --bg-overlay: rgba(246, 246, 249, 0.9);
+
+  /* Brand colors */
+  --color-primary: #5935DB;
+  --color-primary-hover: #4A28BE;
+  --color-primary-glow: rgba(89, 53, 219, 0.15);
+  --color-accent: #00A684;
+  --color-accent-hover: #008F70;
+  --color-accent-glow: rgba(0, 166, 132, 0.15);
+
+  /* Text */
+  --color-text: #0B0B14;
+  --color-muted: #6B7280;
+  --color-subtle: #4B5563;
+
+  /* Borders */
+  --border-default: rgba(11, 11, 20, 0.08);
+  --border-strong: rgba(11, 11, 20, 0.15);
+  --border-glow: rgba(89, 53, 219, 0.35);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(11, 11, 20, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* color-scheme tells browser to use light-mode native UI */
+  color-scheme: light;
+}
+
+.light .glass-strong, [data-theme='light'] .glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(11, 11, 20, 0.12);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+
 /* =============================================
    Base Reset & Global Styles
    ============================================= */
