@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core.embeddings import embed_batch, embed_text
+from app.core.settings import settings
 from app.schemas import (
     EmbedRequest,
     InterviewFeedbackRequest,
@@ -13,7 +14,11 @@ from app.schemas import (
     LetterRequest,
     MatchRequest,
 )
-from app.services.interview import generate_feedback, generate_interview_questions
+from app.services.interview import (
+    build_fallback_interview_questions,
+    generate_feedback,
+    generate_interview_questions,
+)
 from app.services.letter_generator import stream_cover_letter
 from app.services.matcher import match_grants
 
@@ -52,7 +57,13 @@ async def letter(payload: LetterRequest) -> StreamingResponse:
 
 @router.post("/interview/questions")
 async def interview_questions(payload: InterviewQuestionsRequest) -> JSONResponse:
-    questions = await asyncio.to_thread(generate_interview_questions, payload.grant)
+    try:
+        questions = await asyncio.wait_for(
+            asyncio.to_thread(generate_interview_questions, payload.grant),
+            timeout=settings.gemini_interview_timeout_seconds,
+        )
+    except asyncio.TimeoutError:
+        questions = build_fallback_interview_questions(payload.grant)
     return JSONResponse(questions)
 
 

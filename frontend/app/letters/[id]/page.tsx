@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -38,19 +38,23 @@ function normalizeGrantFromLetter(letter: Awaited<ReturnType<typeof getLetterByI
 export default function LetterEditorPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const routeId = params?.id;
+  const source = searchParams.get("source");
+  const isGrantSource = source === "grant";
+  const isLetterSource = source === "letter";
 
   const grantQuery = useQuery({
     queryKey: ["grant", routeId],
     queryFn: () => getGrantById(routeId),
-    enabled: !!routeId,
+    enabled: !!routeId && !isLetterSource,
     retry: false,
   });
 
   const letterQuery = useQuery({
     queryKey: ["letter", routeId],
     queryFn: () => getLetterById(routeId),
-    enabled: !!routeId,
+    enabled: !!routeId && !isGrantSource,
     retry: false,
   });
 

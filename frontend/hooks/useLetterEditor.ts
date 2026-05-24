@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {
-  API_BASE_URL,
+  authFetch,
   updateLetter,
   type CoverLetterGeneratePayload,
 } from "@/lib/api";
@@ -152,7 +152,7 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
       };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/letters/generate`, {
+        const response = await authFetch("/api/letters/generate", {
           method: "POST",
           credentials: "include",
           headers: {

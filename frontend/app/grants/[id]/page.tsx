@@ -207,7 +207,7 @@ export default function GrantDetailPage() {
 
                 <div className="grid gap-3">
                   <Button asChild variant="glow" size="lg" className="w-full">
-                    <Link href={`/letters/${grant.id}`}>
+                    <Link href={`/letters/${grant.id}?source=grant`}>
                       <Sparkles className="h-4 w-4" />
                       Generate Cover Letter
                     </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getInterviewQuestions,
@@ -20,6 +20,7 @@ export function useInterviewSession({ grantId, grant, setActiveTab }: UseIntervi
   const [questions, setQuestions] = useState<InterviewQuestionApi[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const lastGeneratedGrantIdRef = useRef<string | null>(null);
 
   const [sessionAnswers, setSessionAnswers] = useState<{ [key: number]: string }>({});
   const [sessionFeedbacks, setSessionFeedbacks] = useState<{
@@ -34,10 +35,12 @@ export function useInterviewSession({ grantId, grant, setActiveTab }: UseIntervi
   const [savingSession, setSavingSession] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    if (!grant) return;
+  const generateQuestions = useCallback(
+    async (force = false) => {
+      if (!grant) return;
+      if (!force && lastGeneratedGrantIdRef.current === grantId) return;
 
-    const generateQuestions = async () => {
+      lastGeneratedGrantIdRef.current = grantId;
       try {
         setLoadingQuestions(true);
         setQuestionsError(null);
@@ -56,10 +59,13 @@ export function useInterviewSession({ grantId, grant, setActiveTab }: UseIntervi
       } finally {
         setLoadingQuestions(false);
       }
-    };
+    },
+    [grant, grantId]
+  );
 
+  useEffect(() => {
     generateQuestions();
-  }, [grant]);
+  }, [generateQuestions]);
 
   const handleSaveSession = async () => {
     if (Object.keys(sessionFeedbacks).length === 0) return;
@@ -104,5 +110,6 @@ export function useInterviewSession({ grantId, grant, setActiveTab }: UseIntervi
     savingSession,
     saveSuccess,
     handleSaveSession,
+    retryQuestions: () => generateQuestions(true),
   };
 }

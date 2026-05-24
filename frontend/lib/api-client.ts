@@ -8,6 +8,8 @@ export type RequestOptions = RequestInit & {
   auth?: boolean;
 };
 
+let refreshPromise: Promise<boolean> | null = null;
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
   const data = contentType.includes("application/json")
@@ -38,14 +40,60 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
     return handleDemoRequest<T>(path, options);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
+  const response = await authFetch(path, options);
 
   return parseResponse<T>(response);
+}
+
+function buildFetchInit(options: RequestOptions = {}): RequestInit {
+  const headers = new Headers(options.headers);
+
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return {
+    credentials: "include",
+    ...options,
+    headers,
+  };
+}
+
+async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
+export async function authFetch(pathOrUrl: string, options: RequestOptions = {}) {
+  const url = pathOrUrl.startsWith("http") ? pathOrUrl : `${API_BASE_URL}${pathOrUrl}`;
+  const response = await fetch(url, buildFetchInit(options));
+  const shouldRefresh =
+    (response.status === 401 || response.status === 403) &&
+    !url.includes("/api/auth/refresh") &&
+    options.auth !== false;
+
+  if (!shouldRefresh) {
+    return response;
+  }
+
+  const refreshed = await refreshSession();
+  if (!refreshed) {
+    return response;
+  }
+
+  return fetch(url, buildFetchInit(options));
 }

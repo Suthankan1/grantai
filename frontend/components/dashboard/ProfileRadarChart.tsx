@@ -35,9 +35,9 @@ export function ProfileRadarChart({ radarData }: ProfileRadarChartProps) {
           <Sparkles className="h-4 w-4 text-purple-400" />
         </div>
       </CardHeader>
-      <CardContent className="p-4 flex items-center justify-center h-[240px]">
-        <div className="w-full h-full relative">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="flex h-[240px] min-w-0 items-center justify-center p-4">
+        <div className="relative h-full min-h-[208px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height={208} minWidth={0}>
             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
               <PolarGrid stroke="rgba(240, 240, 255, 0.04)" />
               <PolarAngleAxis

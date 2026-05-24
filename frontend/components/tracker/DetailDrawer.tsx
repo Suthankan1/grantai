@@ -253,7 +253,7 @@ export default function DetailDrawer({ card, isOpen, onClose, onUpdate, onDelete
                       </div>
                     </div>
                     <Button size="sm" asChild className="h-8.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
-                      <Link href={`/letters/${card.coverLetterId}`}>View Letter</Link>
+                      <Link href={`/letters/${card.coverLetterId}?source=letter`}>View Letter</Link>
                     </Button>
                   </div>
                 ) : isGeneratingLetter ? (

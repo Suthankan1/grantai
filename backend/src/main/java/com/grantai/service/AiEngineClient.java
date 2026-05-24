@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,12 @@ public class AiEngineClient {
 
     @Value("${ai-engine.api-key:}")
     private String aiEngineApiKey;
+
+    @Value("${ai-engine.match-timeout-seconds:25}")
+    private long matchTimeoutSeconds;
+
+    @Value("${ai-engine.interview-timeout-seconds:25}")
+    private long interviewTimeoutSeconds;
 
     public AiEngineClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -52,7 +59,7 @@ public class AiEngineClient {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/match"))
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(matchTimeoutSeconds))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
@@ -87,6 +94,9 @@ public class AiEngineClient {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             log.warn("AI match request interrupted: {}", ex.getMessage());
+            return Map.of();
+        } catch (HttpTimeoutException ex) {
+            log.warn("AI match request timed out after {} seconds", matchTimeoutSeconds);
             return Map.of();
         } catch (IOException ex) {
             log.warn("AI match request failed: {}", ex.getMessage());
@@ -136,7 +146,7 @@ public class AiEngineClient {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/interview/questions"))
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(interviewTimeoutSeconds))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
@@ -154,6 +164,9 @@ public class AiEngineClient {
             Thread.currentThread().interrupt();
             log.warn("AI interview questions request interrupted: {}", ex.getMessage());
             return "{\"questions\":[]}";
+        } catch (HttpTimeoutException ex) {
+            log.warn("AI interview questions request timed out after {} seconds", interviewTimeoutSeconds);
+            return "{\"questions\":[]}";
         } catch (IOException ex) {
             log.warn("AI interview questions request failed: {}", ex.getMessage());
             return "{\"questions\":[]}";
@@ -169,7 +182,7 @@ public class AiEngineClient {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/interview/feedback"))
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(interviewTimeoutSeconds))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
@@ -186,6 +199,9 @@ public class AiEngineClient {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             log.warn("AI interview feedback request interrupted: {}", ex.getMessage());
+            return "{}";
+        } catch (HttpTimeoutException ex) {
+            log.warn("AI interview feedback request timed out after {} seconds", interviewTimeoutSeconds);
             return "{}";
         } catch (IOException ex) {
             log.warn("AI interview feedback request failed: {}", ex.getMessage());

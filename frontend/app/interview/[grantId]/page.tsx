@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -33,7 +33,6 @@ import { SessionsList } from "@/components/interview/SessionsList";
 export default function InterviewPrepPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
   const params = useParams<{ grantId: string }>();
-  const router = useRouter();
   const grantId = params?.grantId;
 
   // Tabs state
@@ -68,6 +67,7 @@ export default function InterviewPrepPage() {
     savingSession,
     saveSuccess,
     handleSaveSession,
+    retryQuestions,
   } = useInterviewSession({
     grantId: grantId as string,
     grant,
@@ -211,7 +211,7 @@ export default function InterviewPrepPage() {
                 {questionsError && (
                   <Card className="p-8 border-rose-500/30 bg-rose-500/5 text-center">
                     <p className="text-sm text-[var(--color-text)]">{questionsError}</p>
-                    <Button className="mt-4" onClick={() => router.refresh()}>
+                    <Button className="mt-4" onClick={retryQuestions}>
                       Retry Generation
                     </Button>
                   </Card>

@@ -44,6 +44,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _fallback_score(grant: dict[str, Any]) -> dict[str, Any]:
+    distance = grant.get("distance", 1.0)
+    score = max(0, min(100, round((1 - distance) * 100)))
+    reasoning = "Compatibility was estimated from semantic similarity between the applicant profile and grant metadata. The score reflects how closely this grant matches the applicant's stated interests."
+    return {"score": score, "reasoning": reasoning}
+
+
 def _score_grant_with_gemini(profile: dict[str, Any], grant: dict[str, Any]) -> dict[str, Any]:
     prompt = f"""
 You are ranking grant compatibility for an applicant.
@@ -69,25 +76,37 @@ Grant:
             reasoning = f"{base}. {base}." if base else "Compatibility was estimated from the applicant profile and grant metadata. The grant aligns with the applicant's background."
     except Exception as e:
         logger.warning(f"Gemini scoring skipped for grant {grant.get('id')}: {e}")
-        # Fall back to embedding distance converted to a 0-100 score
-        distance = grant.get("distance", 1.0)
-        score = max(0, min(100, round((1 - distance) * 100)))
-        reasoning = "Compatibility was estimated from semantic similarity between the applicant profile and grant metadata. The score reflects how closely this grant matches the applicant's stated interests."
+        return _fallback_score(grant)
 
     return {"score": score, "reasoning": reasoning}
 
 
 async def match_grants(profile: dict[str, Any], n_results: int = 10, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    from app.core.settings import settings
+
     query = build_semantic_query(profile)
     query_embedding = embed_text(query)
     candidates = search_grants(query_embedding, n_results=n_results, filters=filters or {})
 
-    scored_candidates = await asyncio.gather(
-        *(
-            asyncio.to_thread(_score_grant_with_gemini, profile, grant)
-            for grant in candidates
-        )
-    )
+    score_limit = max(0, min(settings.gemini_match_candidate_limit, len(candidates)))
+    scored_candidates = [_fallback_score(grant) for grant in candidates]
+
+    if score_limit:
+        tasks = [
+            asyncio.create_task(asyncio.to_thread(_score_grant_with_gemini, profile, grant))
+            for grant in candidates[:score_limit]
+        ]
+        done, pending = await asyncio.wait(tasks, timeout=settings.gemini_match_timeout_seconds)
+
+        for task in pending:
+            task.cancel()
+
+        for index, task in enumerate(tasks):
+            if task in done and not task.cancelled():
+                try:
+                    scored_candidates[index] = task.result()
+                except Exception as exc:
+                    logger.warning("Gemini scoring failed for candidate %s: %s", candidates[index].get("id"), exc)
 
     ranked: list[dict[str, Any]] = []
     for grant, scoring in zip(candidates, scored_candidates, strict=False):

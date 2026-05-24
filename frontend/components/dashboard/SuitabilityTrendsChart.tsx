@@ -65,9 +65,9 @@ export function SuitabilityTrendsChart({ matchChartData }: SuitabilityTrendsChar
           <TrendingUp className="h-4.5 w-4.5 text-[#6C47FF]" />
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="h-[240px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="min-w-0 p-6">
+        <div className="h-[240px] min-h-[240px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height={240} minWidth={0}>
             <LineChart data={matchChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="lineGlow" x1="0" y1="0" x2="1" y2="0">

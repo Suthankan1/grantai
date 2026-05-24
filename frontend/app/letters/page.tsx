@@ -284,7 +284,7 @@ export default function LettersListPage() {
                       {letter.length || "Standard 500w"}
                     </span>
                     <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-purple-400 hover:text-white hover:bg-[rgba(108,71,255,0.1)] rounded-lg">
-                      <Link href={`/letters/${letter.id}`}>
+                      <Link href={`/letters/${letter.id}?source=letter`}>
                         Edit Letter <ArrowRight className="ml-1 h-3 w-3" />
                       </Link>
                     </Button>

@@ -32,9 +32,9 @@ export function ApplicationFunnelChart({
           <FolderOpen className="h-4.5 w-4.5 text-[#00D4AA]" />
         </div>
       </CardHeader>
-      <CardContent className="p-5 flex flex-col justify-between h-[278px]">
-        <div className="h-[180px] w-full mt-2">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="flex h-[278px] min-w-0 flex-col justify-between p-5">
+        <div className="mt-2 h-[180px] min-h-[180px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height={180} minWidth={0}>
             <FunnelChart>
               <Tooltip
                 contentStyle={{
