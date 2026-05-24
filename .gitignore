@@ -1,36 +1,88 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# GrantAI — Monorepo .gitignore
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# ── OS / Editor ────────────────────────────────────────────────────
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+.vscode/settings.json
+.idea/
+*.iml
 
-# debug
+# ── Environment & Secrets ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+secrets/
+
+# ── Frontend (Next.js) ────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
+frontend/.npm
+frontend/.eslintcache
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ── Backend (Spring Boot / Maven / Gradle) ────────────────────────
+backend/target/
+backend/.mvn/
+backend/*.log
+backend/mvnw
+backend/mvnw.cmd
+backend/gradlew
+backend/gradlew.bat
+backend/.gradle/
+backend/build/
+backend/HELP.md
+
+# ── AI Engine (Python / FastAPI) ──────────────────────────────────
+ai-engine/__pycache__/
+ai-engine/**/__pycache__/
+ai-engine/*.pyc
+ai-engine/*.pyo
+ai-engine/*.pyd
+ai-engine/.Python
+ai-engine/venv/
+ai-engine/.venv/
+ai-engine/env/
+ai-engine/.env/
+ai-engine/.pytest_cache/
+ai-engine/.mypy_cache/
+ai-engine/.ruff_cache/
+ai-engine/dist/
+ai-engine/build/
+ai-engine/*.egg-info/
+ai-engine/poetry.lock
+ai-engine/uv.lock
+ai-engine/htmlcov/
+ai-engine/.coverage
+ai-engine/coverage.xml
+
+# ── Docker ────────────────────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml
+
+# ── Logs ──────────────────────────────────────────────────────────
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ── Testing ───────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+test-results/
+playwright-report/

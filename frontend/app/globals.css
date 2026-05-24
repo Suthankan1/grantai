@@ -1,0 +1,399 @@
+/* =============================================
+   Fontshare Font Family → CSS Variable Mapping
+   Fonts loaded via CDN in layout.tsx <head>
+   ============================================= */
+
+/* Clash Display — geometric display font */
+@font-face {
+  font-family: "ClashDisplay";
+  src: url("https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap");
+  font-display: swap;
+}
+
+:root {
+  --font-clash: "Clash Display", "ClashDisplay", system-ui, sans-serif;
+  --font-satoshi: "Satoshi", system-ui, sans-serif;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================
+   Obsidian Precision Design System — CSS Vars
+   ============================================= */
+
+:root {
+  /* Core palette */
+  --bg-obsidian: #080810;
+  --bg-surface: #0F0F1A;
+  --bg-surface-raised: #141422;
+  --bg-overlay: rgba(15, 15, 26, 0.85);
+
+  /* Brand colors */
+  --color-primary: #6C47FF;
+  --color-primary-hover: #7C5AFF;
+  --color-primary-glow: rgba(108, 71, 255, 0.35);
+  --color-accent: #00D4AA;
+  --color-accent-hover: #00EEC0;
+  --color-accent-glow: rgba(0, 212, 170, 0.3);
+
+  /* Text */
+  --color-text: #F0F0FF;
+  --color-muted: #6B7280;
+  --color-subtle: #9CA3AF;
+
+  /* Borders */
+  --border-default: rgba(240, 240, 255, 0.08);
+  --border-strong: rgba(240, 240, 255, 0.15);
+  --border-glow: rgba(108, 71, 255, 0.4);
+
+  /* Fonts */
+  --font-display-size: clamp(2.5rem, 6vw, 4.5rem);
+  --font-heading-size: clamp(1.5rem, 4vw, 2.5rem);
+
+  /* Glassmorphism */
+  --glass-blur: 20px;
+  --glass-bg: rgba(15, 15, 26, 0.6);
+  --glass-border: rgba(240, 240, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Radius */
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* color-scheme tells browser to use dark-mode native UI */
+  color-scheme: dark;
+}
+
+/* =============================================
+   Base Reset & Global Styles
+   ============================================= */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--border-default);
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--bg-obsidian);
+    color: var(--color-text);
+    font-family: var(--font-satoshi), system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-clash), system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--color-text);
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-jetbrains), ui-monospace, "Cascadia Code", monospace;
+  }
+
+  ::selection {
+    background-color: rgba(108, 71, 255, 0.3);
+    color: var(--color-text);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-obsidian);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(108, 71, 255, 0.4);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 71, 255, 0.7);
+  }
+
+  /* Standard scrollbar-color (progressive enhancement) */
+  @supports (scrollbar-color: auto) {
+    * {
+      scrollbar-color: rgba(108, 71, 255, 0.4) var(--bg-obsidian);
+      scrollbar-width: thin;
+    }
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img, video {
+    max-width: 100%;
+    display: block;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  input, textarea, select {
+    font-family: inherit;
+    color: var(--color-text);
+    background-color: transparent;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
+  }
+
+  /* Focus-visible ring — keyboard accessible */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* =============================================
+   Component Utilities
+   ============================================= */
+
+@layer components {
+  /* Glass card */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-strong {
+    background: rgba(15, 15, 26, 0.8);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(240, 240, 255, 0.12);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  /* Glow effect utilities */
+  .glow-primary {
+    box-shadow: 0 0 20px var(--color-primary-glow), 0 0 40px rgba(108, 71, 255, 0.15);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px var(--color-accent-glow), 0 0 40px rgba(0, 212, 170, 0.15);
+  }
+
+  /* Text gradient */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, #6C47FF, #9B73FF, #00D4AA);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-shift 4s ease infinite;
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #00D4AA, #00FFD1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Shimmer loading skeleton */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--bg-surface) 0%,
+      rgba(108, 71, 255, 0.12) 50%,
+      var(--bg-surface) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Surface cards */
+  .surface {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .surface-raised {
+    background: var(--bg-surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Interactive hover state */
+  .interactive {
+    transition: all var(--transition-base);
+  }
+
+  .interactive:hover {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 0 1px rgba(108, 71, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+  }
+
+  /* Badge base */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    border: 1px solid transparent;
+  }
+
+  /* Noise texture overlay for depth */
+  .noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
+
+/* =============================================
+   Utility Classes
+   ============================================= */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Grid pattern background */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(240, 240, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240, 240, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Dot pattern */
+  .bg-dots {
+    background-image: radial-gradient(circle, rgba(108, 71, 255, 0.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Hero glow blob */
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(108,71,255,0.25) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* Hide scrollbar visually but keep scroll */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Truncate multi-line */
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* =============================================
+   Keyframe Animations (global)
+   ============================================= */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(108, 71, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(108, 71, 255, 0.6), 0 0 60px rgba(108, 71, 255, 0.3);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes border-glow-pulse {
+  0%, 100% { border-color: var(--border-default); }
+  50% { border-color: rgba(108, 71, 255, 0.5); }
+}
