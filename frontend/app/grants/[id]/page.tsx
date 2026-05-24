@@ -213,6 +213,13 @@ export default function GrantDetailPage() {
                     </Link>
                   </Button>
 
+                  <Button asChild variant="outline" size="lg" className="w-full border-primary/40 hover:border-primary/80">
+                    <Link href={`/interview/${grant.id}`}>
+                      <Sparkles className="h-4 w-4 text-[#00D4AA] animate-pulse" />
+                      Start Interview Prep
+                    </Link>
+                  </Button>
+
                   <Button
                     variant={saved ? "accent" : "outline"}
                     size="lg"

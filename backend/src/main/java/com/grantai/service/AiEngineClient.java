@@ -129,5 +129,69 @@ public class AiEngineClient {
         return response.body();
     }
 
+    public String fetchInterviewQuestions(Map<String, Object> grantPayload) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("grant", grantPayload);
+
+        try {
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/interview/questions"))
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+
+            if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", aiEngineApiKey);
+            }
+
+            HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.warn("AI interview questions request failed with status {}", response.statusCode());
+                return "{\"questions\":[]}";
+            }
+            return response.body();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("AI interview questions request interrupted: {}", ex.getMessage());
+            return "{\"questions\":[]}";
+        } catch (IOException ex) {
+            log.warn("AI interview questions request failed: {}", ex.getMessage());
+            return "{\"questions\":[]}";
+        }
+    }
+
+    public String fetchInterviewFeedback(String question, String answer, Map<String, Object> grantPayload) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("question", question);
+        payload.put("answer", answer);
+        payload.put("grant", grantPayload != null ? grantPayload : Map.of());
+
+        try {
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/interview/feedback"))
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+
+            if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", aiEngineApiKey);
+            }
+
+            HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.warn("AI interview feedback request failed with status {}", response.statusCode());
+                return "{}";
+            }
+            return response.body();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("AI interview feedback request interrupted: {}", ex.getMessage());
+            return "{}";
+        } catch (IOException ex) {
+            log.warn("AI interview feedback request failed: {}", ex.getMessage());
+            return "{}";
+        }
+    }
+
     public record ScoreResult(int score, String reasoning) {}
 }

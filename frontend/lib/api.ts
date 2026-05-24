@@ -315,3 +315,66 @@ export async function getDashboardStats() {
     method: "GET",
   });
 }
+
+export interface InterviewQuestionApi {
+  question: string;
+  context: string;
+  category: string;
+}
+
+export interface InterviewQuestionsResponseApi {
+  questions: InterviewQuestionApi[];
+}
+
+export interface InterviewFeedbackResponseApi {
+  score: number;
+  strengths: string[];
+  areas_to_improve: string[];
+  suggested_improvements: string[];
+  suggested_answer: string;
+}
+
+export interface InterviewSessionResponseApi {
+  id: string;
+  grantId: string;
+  grantTitle: string;
+  grantProvider: string;
+  questionsJson: string;
+  answersJson: string;
+  feedbackJson: string;
+  avgScore: number;
+  createdAt: string;
+}
+
+export async function getInterviewQuestions(grant: unknown) {
+  return apiRequest<InterviewQuestionsResponseApi>("/api/interview/questions", {
+    method: "POST",
+    body: JSON.stringify({ grant }),
+  });
+}
+
+export async function getInterviewFeedback(question: string, answer: string, grant: unknown) {
+  return apiRequest<InterviewFeedbackResponseApi>("/api/interview/feedback", {
+    method: "POST",
+    body: JSON.stringify({ question, answer, grant }),
+  });
+}
+
+export async function listInterviewSessions() {
+  return apiRequest<InterviewSessionResponseApi[]>("/api/interview/sessions", {
+    method: "GET",
+  });
+}
+
+export async function saveInterviewSession(payload: {
+  grantId: string;
+  questionsJson: string;
+  answersJson: string;
+  feedbackJson: string;
+  avgScore: number;
+}) {
+  return apiRequest<InterviewSessionResponseApi>("/api/interview/sessions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
