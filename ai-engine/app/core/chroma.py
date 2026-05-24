@@ -52,12 +52,43 @@ def add_grants(grants: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return grants
 
 
+def format_chromadb_filters(filters: dict[str, Any]) -> dict[str, Any] | None:
+    if not filters:
+        return None
+    
+    if "where" in filters and isinstance(filters["where"], dict):
+        filters = filters["where"]
+
+    conditions = []
+    for key, val in filters.items():
+        if val is None or val == "":
+            continue
+            
+        if key in {"minAmount", "maxAmount", "minDeadline", "maxDeadline"}:
+            continue
+
+        meta_key = key
+        op = "$eq"
+        
+        if isinstance(val, dict):
+            conditions.append({meta_key: val})
+        else:
+            conditions.append({meta_key: {op: val}})
+
+    if not conditions:
+        return None
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"$and": conditions}
+
+
 def search_grants(query_embedding: list[float], n_results: int, filters: dict[str, Any] | None) -> list[dict[str, Any]]:
     collection = get_grants_collection()
+    where_clause = format_chromadb_filters(filters) if filters else None
     query = collection.query(
         query_embeddings=[query_embedding],
         n_results=n_results,
-        where=filters or None,
+        where=where_clause,
         include=["documents", "metadatas", "distances"],
     )
 

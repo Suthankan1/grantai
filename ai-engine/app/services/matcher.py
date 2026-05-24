@@ -39,6 +39,11 @@ def build_semantic_query(profile: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def _score_grant_with_gemini(profile: dict[str, Any], grant: dict[str, Any]) -> dict[str, Any]:
     prompt = f"""
 You are ranking grant compatibility for an applicant.
@@ -53,14 +58,19 @@ Grant:
 {json.dumps(grant, ensure_ascii=False, indent=2)}
 """.strip()
 
-    response = get_gemini_model().generate_content(prompt)
-    payload = extract_json_payload(getattr(response, "text", "") or "")
-    score = int(payload.get("score", 0) or 0)
-    score = max(0, min(100, score))
-    reasoning = str(payload.get("reasoning", "Compatibility was estimated from the applicant profile and grant metadata.")).strip()
-    if reasoning.count(".") < 2:
-        base_reasoning = reasoning.rstrip(".")
-        reasoning = f"{base_reasoning}. {base_reasoning}."
+    try:
+        response = get_gemini_model().generate_content(prompt)
+        payload = extract_json_payload(getattr(response, "text", "") or "")
+        score = int(payload.get("score", 0) or 0)
+        score = max(0, min(100, score))
+        reasoning = str(payload.get("reasoning", "Compatibility was estimated from the applicant profile and grant metadata.")).strip()
+        if reasoning.count(".") < 2:
+            base_reasoning = reasoning.rstrip(".")
+            reasoning = f"{base_reasoning}. {base_reasoning}."
+    except Exception as e:
+        logger.error(f"Error scoring grant {grant.get('id')} with Gemini: {e}")
+        score = 0
+        reasoning = "Compatibility was estimated from the applicant profile and grant metadata."
 
     return {"score": score, "reasoning": reasoning}
 

@@ -22,7 +22,7 @@ class Settings:
     environment: str = field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
     api_key: str = field(default_factory=lambda: os.getenv("AI_ENGINE_API_KEY", ""))
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", "")))
-    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
+    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
     embedding_model: str = field(default_factory=lambda: os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
     chroma_path: str = field(default_factory=lambda: os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma"))
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "sqlite:///./data/grants.db"))

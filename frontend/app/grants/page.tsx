@@ -5,9 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Filter, Search, SlidersHorizontal, X, Menu } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import * as ReactWindow from "react-window";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const List = (ReactWindow as any).FixedSizeList || (ReactWindow as any).default?.FixedSizeList;
+import { List } from "react-window";
 import { GrantCard } from "@/components/grants/GrantCard";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -448,13 +446,12 @@ export default function GrantsPage() {
                   {grants.length > 50 ? (
                     <div className="relative">
                       <List
-                        height={750}
-                        itemCount={chunkedGrants.length}
-                        itemSize={460}
-                        width="100%"
+                        rowCount={chunkedGrants.length}
+                        rowHeight={460}
+                        style={{ height: 750, width: "100%" }}
                         className="no-scrollbar"
-                      >
-                        {({ index, style }: { index: number; style: React.CSSProperties }) => {
+                        rowProps={{}}
+                        rowComponent={({ index, style }) => {
                           const rowItems = chunkedGrants[index] || [];
                           return (
                             <div
@@ -474,7 +471,7 @@ export default function GrantsPage() {
                             </div>
                           );
                         }}
-                      </List>
+                      />
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
