@@ -4,7 +4,7 @@ import json
 from collections.abc import Generator
 from typing import Any
 
-from app.core.gemini import get_gemini_model
+from app.core.gemini import stream_text
 
 
 def _length_directive(length: str | None) -> str:
@@ -51,10 +51,7 @@ Grant details:
 
 def stream_cover_letter(profile: dict[str, Any], grant: dict[str, Any], options: dict[str, Any]) -> Generator[bytes, None, None]:
     prompt = build_cover_letter_prompt(profile, grant, options)
-    response = get_gemini_model().generate_content(prompt, stream=True)
-
-    for chunk in response:
-        delta = getattr(chunk, "text", "") or ""
+    for delta in stream_text(prompt):
         if not delta:
             continue
         payload = json.dumps({"delta": delta}, ensure_ascii=False)

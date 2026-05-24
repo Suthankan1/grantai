@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from app.core.gemini import extract_json_payload, get_gemini_model
+from app.core.gemini import extract_json_payload, generate_text
 
 
 def generate_interview_questions(grant: dict[str, Any]) -> dict[str, Any]:
@@ -17,8 +17,8 @@ Grant details:
 {json.dumps(grant, ensure_ascii=False, indent=2)}
 """.strip()
 
-    response = get_gemini_model().generate_content(prompt)
-    payload = extract_json_payload(getattr(response, "text", "") or "")
+    text = generate_text(prompt)
+    payload = extract_json_payload(text)
     questions = payload.get("questions")
     if not isinstance(questions, list):
         questions = [{"question": str(item), "context": "", "category": "Motivation"} for item in payload.get("items", [])]
@@ -52,8 +52,8 @@ Answer:
 {answer}
 """.strip()
 
-    response = get_gemini_model().generate_content(prompt)
-    payload = extract_json_payload(getattr(response, "text", "") or "")
+    text = generate_text(prompt)
+    payload = extract_json_payload(text)
 
     return {
         "score": max(1, min(10, int(payload.get("score", 0) or 0))),

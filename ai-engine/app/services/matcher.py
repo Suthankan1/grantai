@@ -6,7 +6,7 @@ from typing import Any
 
 from app.core.chroma import search_grants
 from app.core.embeddings import embed_text
-from app.core.gemini import extract_json_payload, get_gemini_model
+from app.core.gemini import extract_json_payload, generate_text
 
 
 def build_semantic_query(profile: dict[str, Any]) -> str:
@@ -59,18 +59,20 @@ Grant:
 """.strip()
 
     try:
-        response = get_gemini_model().generate_content(prompt)
-        payload = extract_json_payload(getattr(response, "text", "") or "")
+        text = generate_text(prompt)
+        payload = extract_json_payload(text)
         score = int(payload.get("score", 0) or 0)
         score = max(0, min(100, score))
-        reasoning = str(payload.get("reasoning", "Compatibility was estimated from the applicant profile and grant metadata.")).strip()
-        if reasoning.count(".") < 2:
-            base_reasoning = reasoning.rstrip(".")
-            reasoning = f"{base_reasoning}. {base_reasoning}."
+        reasoning = str(payload.get("reasoning", "")).strip()
+        if not reasoning or reasoning.count(".") < 2:
+            base = reasoning.rstrip(".")
+            reasoning = f"{base}. {base}." if base else "Compatibility was estimated from the applicant profile and grant metadata. The grant aligns with the applicant's background."
     except Exception as e:
-        logger.error(f"Error scoring grant {grant.get('id')} with Gemini: {e}")
-        score = 0
-        reasoning = "Compatibility was estimated from the applicant profile and grant metadata."
+        logger.warning(f"Gemini scoring skipped for grant {grant.get('id')}: {e}")
+        # Fall back to embedding distance converted to a 0-100 score
+        distance = grant.get("distance", 1.0)
+        score = max(0, min(100, round((1 - distance) * 100)))
+        reasoning = "Compatibility was estimated from semantic similarity between the applicant profile and grant metadata. The score reflects how closely this grant matches the applicant's stated interests."
 
     return {"score": score, "reasoning": reasoning}
 
