@@ -1,25 +1,34 @@
 # GrantAI — AI Engine (FastAPI)
 
-FastAPI · Python 3.12 · LangChain · OpenAI · pgvector
+FastAPI · Python 3.12 · Poetry · ChromaDB · Google Gemini · sentence-transformers
 
 ## Overview
 
 AI microservice responsible for:
-- Grant semantic search (pgvector embeddings)
-- LLM-powered application writing (GPT-4)
-- Grant–organization matching scoring
-- Document ingestion & chunking
+- Grant ingestion and normalization
+- Semantic retrieval with ChromaDB and sentence embeddings
+- Grant matching and compatibility scoring
+- Cover letter generation with Gemini streaming
+- Interview question generation and feedback
 
 ## Setup
 
 ```bash
-pip install uv
-uv venv && source .venv/bin/activate
-uv pip install -r requirements.txt
-uvicorn app.main:app --reload
+cd ai-engine
+poetry install
+export GEMINI_API_KEY=your_key_here
+export AI_ENGINE_API_KEY=shared_service_secret
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 API available at `http://localhost:8000`  
+Health check: `GET /ai/health`  
 Interactive docs at `http://localhost:8000/docs`
 
-> **Note:** FastAPI project will be initialized in the next prompt.
+## Notes
+
+- `/ai/match` returns ranked grants with Gemini compatibility scores.
+- `/ai/letter` streams Server-Sent Events.
+- `/ai/interview/questions` and `/ai/interview/feedback` return structured JSON.
+- The service accepts `X-API-Key` or `Authorization: Bearer ...` when `AI_ENGINE_API_KEY` is set.
+
