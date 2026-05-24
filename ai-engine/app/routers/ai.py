@@ -44,7 +44,7 @@ async def match(payload: MatchRequest) -> JSONResponse:
 @router.post("/letter")
 async def letter(payload: LetterRequest) -> StreamingResponse:
     return StreamingResponse(
-        stream_cover_letter(payload.profile, payload.grant),
+        stream_cover_letter(payload.profile, payload.grant, payload.options),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,6 +34,7 @@ public class AiEngineClient {
     public AiEngineClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(5))
             .build();
     }
@@ -90,6 +92,41 @@ public class AiEngineClient {
             log.warn("AI match request failed: {}", ex.getMessage());
             return Map.of();
         }
+    }
+
+    public InputStream streamLetter(
+        Map<String, Object> profile,
+        Map<String, Object> grant,
+        Map<String, Object> options
+    ) throws IOException, InterruptedException {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("profile", profile != null ? profile : Map.of());
+        payload.put("grant", grant != null ? grant : Map.of());
+        payload.put("options", options != null ? options : Map.of());
+
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/letter"))
+            .timeout(Duration.ofSeconds(60))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+
+        if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
+            requestBuilder.header("X-API-Key", aiEngineApiKey);
+        }
+
+        HttpResponse<InputStream> response = httpClient.send(
+            requestBuilder.build(),
+            HttpResponse.BodyHandlers.ofInputStream()
+        );
+
+        if (response.statusCode() >= 400) {
+            try (InputStream stream = response.body()) {
+                String body = new String(stream.readAllBytes());
+                throw new IOException("AI letter request failed with status " + response.statusCode() + ": " + body);
+            }
+        }
+
+        return response.body();
     }
 
     public record ScoreResult(int score, String reasoning) {}

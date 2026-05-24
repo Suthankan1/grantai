@@ -14,6 +14,7 @@ class MatchRequest(BaseModel):
 class LetterRequest(BaseModel):
     profile: dict[str, Any] = Field(default_factory=dict)
     grant: dict[str, Any] = Field(default_factory=dict)
+    options: dict[str, Any] = Field(default_factory=dict)
 
 
 class InterviewQuestionsRequest(BaseModel):

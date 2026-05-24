@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -114,6 +114,36 @@ export interface GrantSearchParams {
   size?: number;
 }
 
+export interface CoverLetterApi {
+  id: string;
+  grantId: string;
+  grantTitle: string;
+  grantProvider: string;
+  grantAmount: number | string | null;
+  grantCurrency: string | null;
+  grantDeadline: string | null;
+  grantDescription: string | null;
+  tone: string | null;
+  length: string | null;
+  emphasis: string[];
+  regenerationStyle: string | null;
+  customPrompt: string | null;
+  content: string | null;
+  status: string;
+  addToTracker: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CoverLetterGeneratePayload {
+  grantId: string;
+  tone?: string;
+  length?: string;
+  emphasis?: string[];
+  regenerationStyle?: string;
+  customPrompt?: string;
+}
+
 export async function authRegister(payload: {
   fullName: string;
   email: string;
@@ -180,5 +210,24 @@ export async function searchGrants(params: GrantSearchParams = {}) {
 export async function getGrantById(id: string) {
   return apiRequest<GrantDetailApi>(`/api/grants/${id}`, {
     method: "GET",
+  });
+}
+
+export async function getLetterById(id: string) {
+  return apiRequest<CoverLetterApi>(`/api/letters/${id}`, {
+    method: "GET",
+  });
+}
+
+export async function listLetters() {
+  return apiRequest<CoverLetterApi[]>("/api/letters", {
+    method: "GET",
+  });
+}
+
+export async function updateLetter(id: string, payload: { content?: string; addToTracker?: boolean }) {
+  return apiRequest<CoverLetterApi>(`/api/letters/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
   });
 }
