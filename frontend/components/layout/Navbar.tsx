@@ -2,11 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { Zap, Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/lib/auth-store";
+import { authLogout } from "@/lib/api";
 
 interface NavLink {
   label: string;
@@ -23,9 +26,18 @@ const NAV_LINKS: NavLink[] = [
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { scrollY } = useScroll();
+
+  const hideOnRoutes = pathname.startsWith("/auth") || pathname.startsWith("/onboarding");
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   // Detect scroll position to animate the border-bottom appearance
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -52,6 +64,10 @@ export function Navbar() {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  if (hideOnRoutes) {
+    return null;
+  }
 
   return (
     <>
@@ -125,26 +141,52 @@ export function Navbar() {
 
             {/* Auth buttons */}
             <div className="hidden md:flex items-center gap-3 shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                id="nav-signin"
-              >
-                <Link href="/sign-in">Sign in</Link>
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                asChild
-                id="nav-get-started"
-                className="relative overflow-hidden"
-              >
-                <Link href="/sign-up">
-                  Get started
-                  <ArrowIcon />
-                </Link>
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button variant="outline" size="sm" asChild id="nav-dashboard">
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    id="nav-logout"
+                    className="relative overflow-hidden"
+                    onClick={async () => {
+                      try {
+                        await authLogout();
+                      } finally {
+                        logout();
+                        router.push("/auth/login");
+                      }
+                    }}
+                  >
+                    Logout{user?.fullName ? ` ${user.fullName.split(" ")[0]}` : ""}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    id="nav-signin"
+                  >
+                    <Link href="/auth/login">Sign in</Link>
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    asChild
+                    id="nav-get-started"
+                    className="relative overflow-hidden"
+                  >
+                    <Link href="/auth/register">
+                      Get started
+                      <ArrowIcon />
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -172,7 +214,19 @@ export function Navbar() {
       </motion.header>
 
       {/* Mobile menu */}
-      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <MobileMenu
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        isAuthenticated={isAuthenticated}
+        onLogout={async () => {
+          try {
+            await authLogout();
+          } finally {
+            logout();
+            router.push("/auth/login");
+          }
+        }}
+      />
     </>
   );
 }
@@ -225,9 +279,13 @@ function ArrowIcon() {
 function MobileMenu({
   open,
   onClose,
+  isAuthenticated,
+  onLogout,
 }: {
   open: boolean;
   onClose: () => void;
+  isAuthenticated: boolean;
+  onLogout: () => Promise<void>;
 }) {
   return (
     <motion.div
@@ -279,16 +337,38 @@ function MobileMenu({
         animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ delay: 0.25, duration: 0.3 }}
       >
-        <Button variant="outline" size="lg" asChild>
-          <Link href="/sign-in" onClick={onClose}>
-            Sign in
-          </Link>
-        </Button>
-        <Button variant="default" size="lg" asChild>
-          <Link href="/sign-up" onClick={onClose}>
-            Get started free
-          </Link>
-        </Button>
+        {isAuthenticated ? (
+          <>
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/dashboard" onClick={onClose}>
+                Dashboard
+              </Link>
+            </Button>
+            <Button
+              variant="default"
+              size="lg"
+              onClick={async () => {
+                await onLogout();
+                onClose();
+              }}
+            >
+              Logout
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/auth/login" onClick={onClose}>
+                Sign in
+              </Link>
+            </Button>
+            <Button variant="default" size="lg" asChild>
+              <Link href="/auth/register" onClick={onClose}>
+                Get started free
+              </Link>
+            </Button>
+          </>
+        )}
       </motion.div>
 
       {/* Bottom glow decoration */}

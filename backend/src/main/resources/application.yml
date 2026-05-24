@@ -1,0 +1,53 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/grantai
+    username: postgres
+    password: ${POSTGRES_PASSWORD:grantai_dev_secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  profiles:
+    active: default
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+jwt:
+  secret: ${JWT_SECRET:changeme_in_production_32_chars_min_please_change}
+  access-token-expiry-ms: 900000        # 15 minutes
+  refresh-token-expiry-ms: 604800000    # 7 days
+  cookie-domain: localhost
+  secure-cookie: false                  # true in production (HTTPS)
+
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:3001
+
+logging:
+  level:
+    com.grantai: DEBUG
+    org.springframework.security: WARN
+
+---
+# Docker profile — overrides picked up via SPRING_PROFILES_ACTIVE=docker
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+jwt:
+  secure-cookie: true
+  cookie-domain: ""
