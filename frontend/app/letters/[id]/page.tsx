@@ -242,7 +242,7 @@ export default function LetterEditorPage() {
                       setEmphasis={setEmphasis}
                       customPrompt={customPrompt}
                       setCustomPrompt={setCustomPrompt}
-                      onGenerate={generateLetter}
+                      onGenerate={() => generateLetter()}
                     />
                   )}
 

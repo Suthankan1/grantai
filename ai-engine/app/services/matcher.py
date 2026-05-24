@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
+from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from app.core.chroma import search_grants
 from app.core.embeddings import embed_text
 from app.core.gemini import extract_json_payload, generate_text
+from app.core.settings import settings
+from app.db import get_session
+from app.models import GrantRecord
 
 
 def build_semantic_query(profile: dict[str, Any]) -> str:
@@ -51,6 +57,193 @@ def _fallback_score(grant: dict[str, Any]) -> dict[str, Any]:
     return {"score": score, "reasoning": reasoning}
 
 
+def _normalize(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _split_filter_values(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [_normalize(item) for item in value if _normalize(item)]
+    return [item.strip().lower() for item in str(value).split(",") if item.strip()]
+
+
+def _parse_date(value: Any) -> date | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value)).date()
+    except ValueError:
+        return None
+
+
+def _parse_amount(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _record_to_grant(record: GrantRecord) -> dict[str, Any]:
+    payload = dict(record.raw_payload or {})
+    payload.setdefault("id", record.id)
+    payload.setdefault("title", record.title)
+    payload.setdefault("provider", record.provider)
+    payload.setdefault("description", record.description)
+    payload.setdefault("amount", record.amount)
+    payload.setdefault("deadline", record.deadline)
+    payload.setdefault("country", record.country)
+    payload.setdefault("field", record.field)
+    payload.setdefault("type", record.type)
+    payload.setdefault("source_url", record.source_url)
+    return payload
+
+
+def _matches_filters(grant: dict[str, Any], filters: dict[str, Any]) -> bool:
+    field_values = _split_filter_values(filters.get("field"))
+    country_values = _split_filter_values(filters.get("country"))
+    type_values = _split_filter_values(filters.get("type"))
+    query = _normalize(filters.get("q"))
+    min_amount = _parse_amount(filters.get("minAmount"))
+    max_deadline = _parse_date(filters.get("maxDeadline"))
+
+    field = _normalize(grant.get("field"))
+    country = _normalize(grant.get("country") or grant.get("country_name"))
+    grant_type = _normalize(grant.get("type") or grant.get("grant_type"))
+    title = _normalize(grant.get("title"))
+    description = _normalize(grant.get("description"))
+
+    if field_values and not any(value in field or field in value for value in field_values):
+        return False
+    if country_values and not any(value in country or country in value for value in country_values):
+        return False
+    if type_values and not any(value in grant_type or grant_type in value for value in type_values):
+        return False
+    if query and query not in f"{title} {description} {field} {country} {grant_type}":
+        return False
+
+    grant_amount = _parse_amount(grant.get("amount"))
+    if min_amount is not None and grant_amount is not None and grant_amount < min_amount:
+        return False
+
+    grant_deadline = _parse_date(grant.get("deadline"))
+    if max_deadline is not None and grant_deadline is not None and grant_deadline > max_deadline:
+        return False
+
+    return True
+
+
+def _profile_terms(profile: dict[str, Any]) -> set[str]:
+    terms: set[str] = set()
+    for key in ("fieldOfStudy", "degreeLevel", "country"):
+        value = _normalize(profile.get(key))
+        if value:
+            terms.update(value.split())
+    for key in ("researchInterests", "grantTypes", "preferredCountries"):
+        value = profile.get(key)
+        if isinstance(value, list):
+            for item in value:
+                terms.update(_normalize(item).split())
+        elif value:
+            terms.update(_normalize(value).split())
+    return {term for term in terms if len(term) > 2}
+
+
+def _lexical_score(profile: dict[str, Any], grant: dict[str, Any]) -> dict[str, Any]:
+    terms = _profile_terms(profile)
+    haystack = _normalize(
+        " ".join(
+            str(grant.get(key) or "")
+            for key in ("title", "description", "field", "country", "country_name", "type", "grant_type")
+        )
+    )
+    overlap = sum(1 for term in terms if term in haystack)
+    score = max(35, min(95, 52 + overlap * 8))
+    reasoning = "Compatibility was estimated from local grant metadata because semantic AI scoring was unavailable. The score reflects overlap between the applicant profile, filters, and grant details."
+    return {"score": score, "reasoning": reasoning}
+
+
+def _fallback_candidates_from_db(
+    profile: dict[str, Any],
+    filters: dict[str, Any],
+    n_results: int,
+) -> list[dict[str, Any]]:
+    with get_session() as session:
+        records = session.query(GrantRecord).all()
+
+    candidates = [
+        grant
+        for grant in (_record_to_grant(record) for record in records)
+        if _matches_filters(grant, filters)
+    ]
+    candidates.sort(key=lambda grant: _lexical_score(profile, grant)["score"], reverse=True)
+    return candidates[: max(1, n_results)]
+
+
+def _fallback_candidates_from_chroma(
+    profile: dict[str, Any],
+    filters: dict[str, Any],
+    n_results: int,
+) -> list[dict[str, Any]]:
+    chroma_db = Path(settings.chroma_path) / "chroma.sqlite3"
+    if not chroma_db.exists():
+        return []
+
+    rows: list[tuple[int, str, str | None, int | None, float | None, int | None]] = []
+    with sqlite3.connect(chroma_db) as connection:
+        rows = connection.execute(
+            """
+            select em.id, em.key, em.string_value, em.int_value, em.float_value, em.bool_value
+            from embedding_metadata em
+            order by em.id
+            """
+        ).fetchall()
+
+    grants_by_row: dict[int, dict[str, Any]] = {}
+    for row_id, key, string_value, int_value, float_value, bool_value in rows:
+        grant = grants_by_row.setdefault(row_id, {})
+        value: Any = string_value
+        if value is None:
+            value = int_value if int_value is not None else float_value
+        if value is None:
+            value = bool(bool_value) if bool_value is not None else None
+        if key == "chroma:document":
+            grant.setdefault("description", value or "")
+        elif key:
+            grant[key] = value
+
+    candidates = [
+        grant
+        for grant in grants_by_row.values()
+        if grant.get("id") and _matches_filters(grant, filters)
+    ]
+
+    candidates.sort(key=lambda grant: _lexical_score(profile, grant)["score"], reverse=True)
+    return candidates[: max(1, n_results)]
+
+
+def _fallback_candidates(
+    profile: dict[str, Any],
+    filters: dict[str, Any],
+    n_results: int,
+) -> list[dict[str, Any]]:
+    candidates = _fallback_candidates_from_db(profile, filters, n_results)
+    if candidates:
+        return candidates
+    return _fallback_candidates_from_chroma(profile, filters, n_results)
+
+
+def _semantic_candidates(profile: dict[str, Any], n_results: int, filters: dict[str, Any]) -> list[dict[str, Any]]:
+    query = build_semantic_query(profile)
+    query_embedding = embed_text(query)
+    candidates = search_grants(query_embedding, n_results=max(n_results * 3, n_results), filters={})
+    filtered = [grant for grant in candidates if _matches_filters(grant, filters)]
+    return (filtered or candidates)[: max(1, n_results)]
+
+
 def _score_grant_with_gemini(profile: dict[str, Any], grant: dict[str, Any]) -> dict[str, Any]:
     prompt = f"""
 You are ranking grant compatibility for an applicant.
@@ -82,14 +275,23 @@ Grant:
 
 
 async def match_grants(profile: dict[str, Any], n_results: int = 10, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    from app.core.settings import settings
+    filters = filters or {}
+    semantic_available = True
+    try:
+        candidates = await asyncio.wait_for(
+            asyncio.to_thread(_semantic_candidates, profile, n_results, filters),
+            timeout=settings.semantic_match_timeout_seconds,
+        )
+    except Exception as exc:
+        semantic_available = False
+        logger.warning("Semantic grant search unavailable, using local fallback: %s", exc)
+        candidates = _fallback_candidates(profile, filters, n_results)
 
-    query = build_semantic_query(profile)
-    query_embedding = embed_text(query)
-    candidates = search_grants(query_embedding, n_results=n_results, filters=filters or {})
-
-    score_limit = max(0, min(settings.gemini_match_candidate_limit, len(candidates)))
-    scored_candidates = [_fallback_score(grant) for grant in candidates]
+    score_limit = max(0, min(settings.gemini_match_candidate_limit, len(candidates))) if semantic_available else 0
+    scored_candidates = [
+        _fallback_score(grant) if "distance" in grant else _lexical_score(profile, grant)
+        for grant in candidates
+    ]
 
     if score_limit:
         tasks = [

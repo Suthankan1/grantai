@@ -5,7 +5,7 @@ from fastapi import Request, HTTPException, status
 from app.core.settings import settings
 
 
-PUBLIC_PATHS = {"/ai/health", "/docs", "/openapi.json", "/redoc"}
+PUBLIC_PATHS = {"/", "/favicon.ico", "/ai/health", "/docs", "/openapi.json", "/redoc"}
 
 
 def enforce_api_key(request: Request) -> None:

@@ -133,6 +133,11 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
   const generateLetter = React.useCallback(
     async (overrideStyle?: string) => {
       if (!grant) return;
+      const selectedRegenerateStyle = REGENERATE_OPTIONS.includes(
+        overrideStyle as (typeof REGENERATE_OPTIONS)[number]
+      )
+        ? (overrideStyle as (typeof REGENERATE_OPTIONS)[number])
+        : regenerateStyle;
 
       setStatusMessage(null);
       setShowTrackerPrompt(false);
@@ -148,7 +153,7 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
         length,
         emphasis,
         customPrompt,
-        regenerationStyle: overrideStyle ?? regenerateStyle,
+        regenerationStyle: selectedRegenerateStyle,
       };
 
       try {

@@ -23,6 +23,8 @@ import java.util.Map;
 @Slf4j
 public class AiEngineClient {
 
+    private static final String LOCAL_DEV_API_KEY = "grantai_dev_ai_key";
+
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
@@ -63,13 +65,20 @@ public class AiEngineClient {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
-            if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
-                requestBuilder.header("X-API-Key", aiEngineApiKey);
+            String apiKey = resolveApiKey();
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", apiKey);
             }
 
             HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
-                log.warn("AI match request failed with status {}", response.statusCode());
+                log.warn(
+                    "AI match request failed with status {} from {}. API key configured: {}. Body: {}",
+                    response.statusCode(),
+                    aiEngineUrl,
+                    apiKey != null && !apiKey.isBlank(),
+                    truncate(response.body())
+                );
                 return Map.of();
             }
 
@@ -120,8 +129,9 @@ public class AiEngineClient {
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
-        if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
-            requestBuilder.header("X-API-Key", aiEngineApiKey);
+        String apiKey = resolveApiKey();
+        if (apiKey != null && !apiKey.isBlank()) {
+            requestBuilder.header("X-API-Key", apiKey);
         }
 
         HttpResponse<InputStream> response = httpClient.send(
@@ -150,8 +160,9 @@ public class AiEngineClient {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
-            if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
-                requestBuilder.header("X-API-Key", aiEngineApiKey);
+            String apiKey = resolveApiKey();
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", apiKey);
             }
 
             HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
@@ -186,8 +197,9 @@ public class AiEngineClient {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
 
-            if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
-                requestBuilder.header("X-API-Key", aiEngineApiKey);
+            String apiKey = resolveApiKey();
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", apiKey);
             }
 
             HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
@@ -207,6 +219,31 @@ public class AiEngineClient {
             log.warn("AI interview feedback request failed: {}", ex.getMessage());
             return "{}";
         }
+    }
+
+    private String resolveApiKey() {
+        if (aiEngineApiKey != null && !aiEngineApiKey.isBlank()) {
+            return aiEngineApiKey.trim();
+        }
+        if (isLocalAiEngine()) {
+            return LOCAL_DEV_API_KEY;
+        }
+        return "";
+    }
+
+    private boolean isLocalAiEngine() {
+        if (aiEngineUrl == null) {
+            return false;
+        }
+        String normalizedUrl = aiEngineUrl.toLowerCase();
+        return normalizedUrl.contains("localhost") || normalizedUrl.contains("127.0.0.1");
+    }
+
+    private String truncate(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() > 300 ? value.substring(0, 300) + "..." : value;
     }
 
     public record ScoreResult(int score, String reasoning) {}
