@@ -58,10 +58,12 @@ export function CountryPicker({ value, onChange, label, error }: CountryPickerPr
                   <button
                     key={country.code}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onChange(country.name);
-                      setOpen(false);
                       setQuery("");
+                      setTimeout(() => setOpen(false), 50);
                     }}
                     className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-[var(--color-text)] hover:bg-[rgba(108,71,255,0.08)]"
                   >
@@ -75,10 +77,12 @@ export function CountryPicker({ value, onChange, label, error }: CountryPickerPr
               ) : query.trim() ? (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onChange(query.trim());
-                    setOpen(false);
                     setQuery("");
+                    setTimeout(() => setOpen(false), 50);
                   }}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[#00D4AA] hover:bg-[rgba(0,212,170,0.08)]"
                 >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -33,6 +33,7 @@ export default function OnboardingPage() {
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const profileLoadedRef = useRef(false);
 
   const {
     register,
@@ -65,7 +66,10 @@ export default function OnboardingPage() {
   }, [isAuthenticated, router, user]);
 
   useEffect(() => {
+    if (profileLoadedRef.current) return;
+
     const loadProfile = async () => {
+      profileLoadedRef.current = true;
       try {
         const profile = await getProfile();
         reset({

@@ -69,7 +69,10 @@ export function StepPersonalInfo({
       </div>
       <div className="md:col-span-2 space-y-2">
         <Label htmlFor="photo">Profile photo</Label>
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] px-6 py-8 text-center hover:border-[var(--border-strong)]">
+        <div
+          onClick={() => document.getElementById("photo")?.click()}
+          className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] px-6 py-8 text-center hover:border-[var(--border-strong)]"
+        >
           {photoPreview ? (
             <Image
               src={photoPreview}
@@ -100,7 +103,7 @@ export function StepPersonalInfo({
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] px-3 py-1 text-xs text-[var(--color-muted)]">
             <Upload className="h-3.5 w-3.5" /> Choose file
           </span>
-        </label>
+        </div>
       </div>
     </div>
   );
