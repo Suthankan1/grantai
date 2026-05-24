@@ -95,7 +95,12 @@ export default function OnboardingPage() {
           });
         }
       } catch {
-        // Fresh profile or unauthorized request; keep defaults.
+        // Fresh profile or unauthorized request; populate with current auth user info if available
+        reset({
+          ...defaultValues,
+          fullName: user?.fullName ?? "",
+          email: user?.email ?? "",
+        });
       } finally {
         setIsLoadingProfile(false);
       }

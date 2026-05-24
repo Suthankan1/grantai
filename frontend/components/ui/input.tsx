@@ -69,37 +69,39 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     { className, variant, inputSize, type = "text", leftIcon, rightIcon, error, errorMessage, ...props },
     ref
   ) => {
-    if (leftIcon || rightIcon) {
+    if (leftIcon || rightIcon || errorMessage) {
       return (
-        <div className="relative flex items-center">
-          {leftIcon && (
-            <span className="absolute left-3 flex items-center text-[var(--color-muted)]">
-              {leftIcon}
-            </span>
-          )}
-          <input
-            ref={ref}
-            type={type}
-            className={cn(
-              inputVariants({ variant, inputSize }),
-              leftIcon && "pl-10",
-              rightIcon && "pr-10",
-              error && "border-red-500/60 focus-visible:ring-red-500/30",
-              className
+        <div className="relative flex flex-col gap-1.5 w-full">
+          <div className="relative flex items-center w-full">
+            {leftIcon && (
+              <span className="absolute left-3 flex items-center text-[var(--color-muted)]">
+                {leftIcon}
+              </span>
             )}
-            aria-invalid={error}
-            aria-describedby={errorMessage ? `${props.id}-error` : undefined}
-            {...props}
-          />
-          {rightIcon && (
-            <span className="absolute right-3 flex items-center text-[var(--color-muted)]">
-              {rightIcon}
-            </span>
-          )}
+            <input
+              ref={ref}
+              type={type}
+              className={cn(
+                inputVariants({ variant, inputSize }),
+                leftIcon && "pl-10",
+                rightIcon && "pr-10",
+                error && "border-red-500/60 focus-visible:ring-red-500/30",
+                className
+              )}
+              aria-invalid={error}
+              aria-describedby={errorMessage ? `${props.id}-error` : undefined}
+              {...props}
+            />
+            {rightIcon && (
+              <span className="absolute right-3 flex items-center text-[var(--color-muted)]">
+                {rightIcon}
+              </span>
+            )}
+          </div>
           {errorMessage && (
             <p
               id={`${props.id}-error`}
-              className="absolute -bottom-5 left-0 text-xs text-red-400"
+              className="text-xs text-red-400"
             >
               {errorMessage}
             </p>
