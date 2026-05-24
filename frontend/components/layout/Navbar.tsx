@@ -20,7 +20,7 @@ interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   { label: "Features", href: "#features" },
-  { label: "Grant Search", href: "#grants", badge: "New" },
+  { label: "Grant Search", href: "/grants", badge: "New" },
   { label: "Pricing", href: "#pricing" },
   { label: "About", href: "#about" },
 ];

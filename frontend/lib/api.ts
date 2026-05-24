@@ -68,6 +68,52 @@ export interface ProfileApiResponse {
   profileComplete: boolean;
 }
 
+export interface GrantSummaryApi {
+  id: string;
+  title: string;
+  provider: string;
+  grantType: string;
+  field: string;
+  countryName: string;
+  countryCode: string | null;
+  amount: number | string | null;
+  currency: string | null;
+  deadline: string;
+  description: string;
+  matchScore: number;
+  matchReasoning: string;
+  sourceUrl: string | null;
+}
+
+export interface GrantDetailApi extends GrantSummaryApi {
+  eligibility: string | null;
+  documentsRequired: string[];
+  timeline: string | null;
+  applicationUrl: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface GrantSearchResponseApi {
+  items: GrantSummaryApi[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export interface GrantSearchParams {
+  q?: string;
+  field?: string;
+  country?: string;
+  type?: string;
+  minAmount?: number;
+  maxDeadline?: string;
+  page?: number;
+  size?: number;
+}
+
 export async function authRegister(payload: {
   fullName: string;
   email: string;
@@ -108,5 +154,31 @@ export async function saveProfile(payload: Record<string, unknown>) {
   return apiRequest<ProfileApiResponse>("/api/profile", {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function searchGrants(params: GrantSearchParams = {}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.q) searchParams.set("q", params.q);
+  if (params.field) searchParams.set("field", params.field);
+  if (params.country) searchParams.set("country", params.country);
+  if (params.type) searchParams.set("type", params.type);
+  if (typeof params.minAmount === "number" && Number.isFinite(params.minAmount)) {
+    searchParams.set("minAmount", String(params.minAmount));
+  }
+  if (params.maxDeadline) searchParams.set("maxDeadline", params.maxDeadline);
+  if (typeof params.page === "number") searchParams.set("page", String(params.page));
+  if (typeof params.size === "number") searchParams.set("size", String(params.size));
+
+  const query = searchParams.toString();
+  return apiRequest<GrantSearchResponseApi>(`/api/grants/search${query ? `?${query}` : ""}`, {
+    method: "GET",
+  });
+}
+
+export async function getGrantById(id: string) {
+  return apiRequest<GrantDetailApi>(`/api/grants/${id}`, {
+    method: "GET",
   });
 }

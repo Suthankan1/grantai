@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { fontVariables } from "@/lib/fonts";
 import { Navbar } from "@/components/layout/Navbar";
+import { QueryProvider } from "@/components/providers/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -109,13 +110,15 @@ export default function RootLayout({
           Skip to main content
         </a>
 
-        {/* Global navigation */}
-        <Navbar />
+        <QueryProvider>
+          {/* Global navigation */}
+          <Navbar />
 
-        {/* Page content */}
-        <main id="main-content" tabIndex={-1}>
-          {children}
-        </main>
+          {/* Page content */}
+          <main id="main-content" tabIndex={-1}>
+            {children}
+          </main>
+        </QueryProvider>
       </body>
     </html>
   );

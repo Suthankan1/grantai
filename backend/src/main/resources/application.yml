@@ -34,6 +34,10 @@ cors:
     - http://localhost:3000
     - http://localhost:3001
 
+ai-engine:
+  url: ${AI_ENGINE_URL:http://localhost:8000}
+  api-key: ${AI_ENGINE_API_KEY:grantai_dev_ai_key}
+
 logging:
   level:
     com.grantai: DEBUG
