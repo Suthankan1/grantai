@@ -12,10 +12,10 @@ import {
   Sparkles,
   Award,
   Play,
-  Menu,
   MessageSquare
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileHeader } from "@/components/layout/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,21 +68,7 @@ export default function InterviewHubPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(108,71,255,0.12),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.06),_transparent_30%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)] -z-10" />
         <div className="absolute inset-0 bg-grid opacity-25 -z-10" aria-hidden="true" />
 
-        {/* Mobile Header */}
-        <header className="flex h-16 items-center justify-between border-b border-[rgba(240,240,255,0.05)] px-4 bg-[rgba(8,8,16,0.5)] backdrop-blur-md md:hidden">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center shadow-glow-sm">
-              <span className="text-[10px] font-bold text-white">G</span>
-            </div>
-            <span className="text-sm font-semibold tracking-tight text-white">GrantAI</span>
-          </Link>
-          <button
-            onClick={() => setMobileSidebarOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(240,240,255,0.06)] text-[var(--color-muted)] hover:text-white"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </header>
+        <MobileHeader onMenuClick={() => setMobileSidebarOpen(true)} />
 
         {/* Main Section */}
         <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">

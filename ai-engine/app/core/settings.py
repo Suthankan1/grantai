@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env files
+load_dotenv()
+load_dotenv("../.env")
+
 
 
 def _split_csv(value: str | None, default: list[str]) -> list[str]:
