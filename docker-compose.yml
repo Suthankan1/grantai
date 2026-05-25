@@ -76,7 +76,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: grantai-postgres
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
       - POSTGRES_DB=grantai
       - POSTGRES_USER=grantai
