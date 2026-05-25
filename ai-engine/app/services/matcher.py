@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sqlite3
 from datetime import date, datetime
-from pathlib import Path
 from typing import Any
 
 from app.core.chroma import search_grants
@@ -188,41 +186,23 @@ def _fallback_candidates_from_chroma(
     filters: dict[str, Any],
     n_results: int,
 ) -> list[dict[str, Any]]:
-    chroma_db = Path(settings.chroma_path) / "chroma.sqlite3"
-    if not chroma_db.exists():
+    from app.core.chroma import get_grants_collection
+    collection = get_grants_collection()
+    try:
+        results = collection.get(include=['documents', 'metadatas'])
+    except Exception:
         return []
-
-    rows: list[tuple[int, str, str | None, int | None, float | None, int | None]] = []
-    with sqlite3.connect(chroma_db) as connection:
-        rows = connection.execute(
-            """
-            select em.id, em.key, em.string_value, em.int_value, em.float_value, em.bool_value
-            from embedding_metadata em
-            order by em.id
-            """
-        ).fetchall()
-
-    grants_by_row: dict[int, dict[str, Any]] = {}
-    for row_id, key, string_value, int_value, float_value, bool_value in rows:
-        grant = grants_by_row.setdefault(row_id, {})
-        value: Any = string_value
-        if value is None:
-            value = int_value if int_value is not None else float_value
-        if value is None:
-            value = bool(bool_value) if bool_value is not None else None
-        if key == "chroma:document":
-            grant.setdefault("description", value or "")
-        elif key:
-            grant[key] = value
-
-    candidates = [
-        grant
-        for grant in grants_by_row.values()
-        if grant.get("id") and _matches_filters(grant, filters)
-    ]
-
-    candidates.sort(key=lambda grant: _lexical_score(profile, grant)["score"], reverse=True)
-    return candidates[: max(1, n_results)]
+    grants = []
+    for meta, doc in zip(results.get('metadatas') or [], results.get('documents') or []):
+        if not meta:
+            continue
+        grant = dict(meta)
+        if doc:
+            grant.setdefault('description', doc)
+        if _matches_filters(grant, filters):
+            grants.append(grant)
+    grants.sort(key=lambda g: _lexical_score(profile, g)['score'], reverse=True)
+    return grants[:max(1, n_results)]
 
 
 def _fallback_candidates(
