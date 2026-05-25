@@ -17,238 +17,90 @@ interface UniversityListProps {
   onClear: () => void;
 }
 
-const LOCAL_UNIVERSITY_DIRECTORY: Record<string, University[]> = {
-  "United States": [
-    {
-      name: "Harvard University",
-      country: "United States",
-      web_pages: ["https://www.harvard.edu"],
-      domains: ["harvard.edu"],
-      alpha_two_code: "US"
-    },
-    {
-      name: "Massachusetts Institute of Technology (MIT)",
-      country: "United States",
-      web_pages: ["https://www.mit.edu"],
-      domains: ["mit.edu"],
-      alpha_two_code: "US"
-    },
-    {
-      name: "Stanford University",
-      country: "United States",
-      web_pages: ["https://www.stanford.edu"],
-      domains: ["stanford.edu"],
-      alpha_two_code: "US"
-    },
-    {
-      name: "University of California, Berkeley",
-      country: "United States",
-      web_pages: ["https://www.berkeley.edu"],
-      domains: ["berkeley.edu"],
-      alpha_two_code: "US"
-    },
-    {
-      name: "UC San Francisco",
-      country: "United States",
-      web_pages: ["https://www.ucsf.edu"],
-      domains: ["ucsf.edu"],
-      alpha_two_code: "US"
-    },
-    {
-      name: "Boston University",
-      country: "United States",
-      web_pages: ["https://www.bu.edu"],
-      domains: ["bu.edu"],
-      alpha_two_code: "US"
-    }
-  ],
-  "United Kingdom": [
-    {
-      name: "Imperial College London",
-      country: "United Kingdom",
-      web_pages: ["https://www.imperial.ac.uk"],
-      domains: ["imperial.ac.uk"],
-      alpha_two_code: "GB"
-    },
-    {
-      name: "University College London (UCL)",
-      country: "United Kingdom",
-      web_pages: ["https://www.ucl.ac.uk"],
-      domains: ["ucl.ac.uk"],
-      alpha_two_code: "GB"
-    },
-    {
-      name: "King's College London",
-      country: "United Kingdom",
-      web_pages: ["https://www.kcl.ac.uk"],
-      domains: ["kcl.ac.uk"],
-      alpha_two_code: "GB"
-    },
-    {
-      name: "University of Oxford",
-      country: "United Kingdom",
-      web_pages: ["https://www.ox.ac.uk"],
-      domains: ["ox.ac.uk"],
-      alpha_two_code: "GB"
-    },
-    {
-      name: "University of Cambridge",
-      country: "United Kingdom",
-      web_pages: ["https://www.cam.ac.uk"],
-      domains: ["cam.ac.uk"],
-      alpha_two_code: "GB"
-    }
-  ],
-  Japan: [
-    {
-      name: "University of Tokyo",
-      country: "Japan",
-      web_pages: ["https://www.u-tokyo.ac.jp"],
-      domains: ["u-tokyo.ac.jp"],
-      alpha_two_code: "JP"
-    },
-    {
-      name: "Tokyo Institute of Technology",
-      country: "Japan",
-      web_pages: ["https://www.titech.ac.jp"],
-      domains: ["titech.ac.jp"],
-      alpha_two_code: "JP"
-    },
-    {
-      name: "Waseda University",
-      country: "Japan",
-      web_pages: ["https://www.waseda.jp"],
-      domains: ["waseda.jp"],
-      alpha_two_code: "JP"
-    }
-  ],
-  Germany: [
-    {
-      name: "Technical University of Munich (TUM)",
-      country: "Germany",
-      web_pages: ["https://www.tum.de"],
-      domains: ["tum.de"],
-      alpha_two_code: "DE"
-    },
-    {
-      name: "LMU Munich",
-      country: "Germany",
-      web_pages: ["https://www.lmu.de"],
-      domains: ["lmu.de"],
-      alpha_two_code: "DE"
-    }
-  ],
-  Switzerland: [
-    {
-      name: "ETH Zurich",
-      country: "Switzerland",
-      web_pages: ["https://ethz.ch"],
-      domains: ["ethz.ch"],
-      alpha_two_code: "CH"
-    },
-    {
-      name: "University of Zurich",
-      country: "Switzerland",
-      web_pages: ["https://www.uzh.ch"],
-      domains: ["uzh.ch"],
-      alpha_two_code: "CH"
-    }
-  ],
-  Singapore: [
-    {
-      name: "National University of Singapore (NUS)",
-      country: "Singapore",
-      web_pages: ["https://nus.edu.sg"],
-      domains: ["nus.edu.sg"],
-      alpha_two_code: "SG"
-    },
-    {
-      name: "Nanyang Technological University (NTU)",
-      country: "Singapore",
-      web_pages: ["https://www.ntu.edu.sg"],
-      domains: ["ntu.edu.sg"],
-      alpha_two_code: "SG"
-    }
-  ],
-  Canada: [
-    {
-      name: "University of Toronto",
-      country: "Canada",
-      web_pages: ["https://www.utoronto.ca"],
-      domains: ["utoronto.ca"],
-      alpha_two_code: "CA"
-    },
-    {
-      name: "York University",
-      country: "Canada",
-      web_pages: ["https://www.yorku.ca"],
-      domains: ["yorku.ca"],
-      alpha_two_code: "CA"
-    },
-    {
-      name: "Toronto Metropolitan University",
-      country: "Canada",
-      web_pages: ["https://www.torontomu.ca"],
-      domains: ["torontomu.ca"],
-      alpha_two_code: "CA"
-    }
-  ],
-  Australia: [
-    {
-      name: "University of Sydney",
-      country: "Australia",
-      web_pages: ["https://www.sydney.edu.au"],
-      domains: ["sydney.edu.au"],
-      alpha_two_code: "AU"
-    },
-    {
-      name: "University of New South Wales (UNSW)",
-      country: "Australia",
-      web_pages: ["https://www.unsw.edu.au"],
-      domains: ["unsw.edu.au"],
-      alpha_two_code: "AU"
-    },
-    {
-      name: "University of Technology Sydney (UTS)",
-      country: "Australia",
-      web_pages: ["https://www.uts.edu.au"],
-      domains: ["uts.edu.au"],
-      alpha_two_code: "AU"
-    }
-  ],
-  India: [
-    {
-      name: "Indian Institute of Science (IISc)",
-      country: "India",
-      web_pages: ["https://iisc.ac.in"],
-      domains: ["iisc.ac.in"],
-      alpha_two_code: "IN"
-    },
-    {
-      name: "Bangalore University",
-      country: "India",
-      web_pages: ["https://bangaloreuniversity.ac.in"],
-      domains: ["bangaloreuniversity.ac.in"],
-      alpha_two_code: "IN"
-    }
-  ]
-}
+const UNIVERSITIES_DATA_URL = "/world_universities_9363_list.json";
 
-function getUniversitiesForCountry(countryName: string) {
-  const exactMatch = LOCAL_UNIVERSITY_DIRECTORY[countryName];
-  if (exactMatch) {
-    return exactMatch;
+const COUNTRY_CODE_ALIASES: Record<string, string> = {
+  bolivia: "BO",
+  brunei: "BN",
+  comoros: "KM",
+  "congo (brazzaville)": "CG",
+  "congo (kinshasa)": "CD",
+  "czech republic": "CZ",
+  "guinea-bissau": "GW",
+  iran: "IR",
+  kiribati: "KI",
+  laos: "LA",
+  "marshall islands": "MH",
+  micronesia: "FM",
+  moldova: "MD",
+  nauru: "NR",
+  "north korea": "KP",
+  palau: "PW",
+  palestine: "PS",
+  russia: "RU",
+  "são tomé and príncipe": "ST",
+  "south korea": "KR",
+  syria: "SY",
+  taiwan: "TW",
+  tanzania: "TZ",
+  "timor-leste": "TL",
+  turkey: "TR",
+  tuvalu: "TV",
+  vanuatu: "VU",
+  "vatican city": "VA",
+  venezuela: "VE",
+  vietnam: "VN",
+  "united states of america": "US",
+};
+
+type RawUniversityRecord = {
+  name: string;
+  country_code: string;
+  country: string;
+  website?: string;
+};
+
+function toUniversity(record: RawUniversityRecord): University {
+  const website = record.website?.trim() || "";
+  let domain = "";
+
+  try {
+    if (website) {
+      domain = new URL(website).hostname.replace(/^www\./, "");
+    }
+  } catch {
+    domain = website.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
   }
 
-  return Object.entries(LOCAL_UNIVERSITY_DIRECTORY)
-    .find(([country]) => country.toLowerCase() === countryName.toLowerCase())?.[1]
-    ?? [];
+  return {
+    name: record.name,
+    country: record.country,
+    web_pages: website ? [website] : [],
+    domains: domain ? [domain] : [],
+    alpha_two_code: record.country_code,
+  };
+}
+
+function normalizeCountryName(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function resolveCountryCode(countryName: string) {
+  const normalizedName = normalizeCountryName(countryName);
+  const exactMatch = countries.find((country) => normalizeCountryName(country.name) === normalizedName);
+  if (exactMatch) {
+    return exactMatch.code;
+  }
+
+  return COUNTRY_CODE_ALIASES[normalizedName] ?? null;
 }
 
 export default function UniversityList({ countryName, onClear }: UniversityListProps) {
   const [universities, setUniversities] = useState<University[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const itemsPerPage = 9;
 
   // Retrieve country flag emoji from constants
@@ -260,20 +112,62 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
   }, [countryName]);
 
   useEffect(() => {
+    let cancelled = false;
+    const countryCode = resolveCountryCode(countryName);
+
     if (!countryName) {
       setUniversities([]);
       setSearchQuery("");
       setCurrentPage(1);
+      setLoading(false);
+      setLoadError(null);
       return;
     }
 
-    const localUniversities = getUniversitiesForCountry(countryName)
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name));
+    async function loadUniversities() {
+      setLoading(true);
+      setLoadError(null);
+      setSearchQuery("");
+      setCurrentPage(1);
 
-    setUniversities(localUniversities);
-    setSearchQuery("");
-    setCurrentPage(1);
+      try {
+        const response = await fetch(UNIVERSITIES_DATA_URL);
+        if (!response.ok) {
+          throw new Error("Failed to load local university dataset.");
+        }
+
+        const records = (await response.json()) as RawUniversityRecord[];
+        const localUniversities = records
+          .filter((record) => {
+            if (countryCode) {
+              return record.country_code?.toUpperCase() === countryCode;
+            }
+
+            return normalizeCountryName(record.country) === normalizeCountryName(countryName);
+          })
+          .map(toUniversity)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        if (!cancelled) {
+          setUniversities(localUniversities);
+        }
+      } catch {
+        if (!cancelled) {
+          setUniversities([]);
+          setLoadError("The local university dataset could not be loaded.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadUniversities();
+
+    return () => {
+      cancelled = true;
+    };
   }, [countryName]);
 
   // Filter universities based on search query
@@ -353,7 +247,26 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto pr-1 min-h-[300px]">
-        {filteredUniversities.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="shimmer border border-[var(--border-default)] rounded-xl p-5 h-[116px] animate-pulse opacity-50"
+              />
+            ))}
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-red-500/20 bg-red-500/5 rounded-2xl h-full space-y-4">
+            <Globe className="h-10 w-10 text-red-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">Local Data Error</p>
+              <p className="text-xs text-[var(--color-muted)] mt-1 max-w-xs">
+                {loadError}
+              </p>
+            </div>
+          </div>
+        ) : filteredUniversities.length === 0 ? (
           // Empty State
           <div className="flex flex-col items-center justify-center text-center py-16 text-[var(--color-muted)] space-y-3">
             <Globe className="h-10 w-10 stroke-1 text-[var(--color-muted)] opacity-50" />
