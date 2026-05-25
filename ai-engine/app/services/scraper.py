@@ -20,7 +20,7 @@ from app.db import save_grants
 # ── Source URLs ──────────────────────────────────────────────────────────────
 
 # Grants.gov REST search API (no auth required).
-# Uses POST with a flat JSON body; returns JSON with an "oppHits" list.
+# POST with flat JSON body; response: {"data": {"oppHits": [...], ...}}
 GRANTS_GOV_URL = "https://api.grants.gov/v1/api/search2"
 GRANTS_GOV_BODY: dict[str, Any] = {
     "keyword": "fellowship grant scholarship",
@@ -36,8 +36,14 @@ OPPORTUNITY_DESK_RSS = "https://opportunitydesk.org/feed/"
 NSF_AWARDS_URL = "https://api.nsf.gov/services/v1/awards.json"
 NSF_AWARDS_PARAMS = {"keyword": "fellowship", "printFields": "id,title,abstractText,agency,awardeeName,date,fundsObligatedAmt"}
 
-# World Bank Open Finance datasets catalogue – structured JSON, no auth required.
-WORLD_BANK_URL = "https://finances.worldbank.org/api/datasets.json"
+# World Bank Projects search API – structured JSON, no auth required.
+# Returns {"projects": {"<id>": {id, project_name, totalamt, boardapprovaldate, url, project_abstract}, ...}}
+WORLD_BANK_URL = "https://search.worldbank.org/api/v2/projects"
+WORLD_BANK_PARAMS: dict[str, Any] = {
+    "format": "json",
+    "fl": "id,project_name,boardapprovaldate,totalamt,pdo,url,project_abstract",
+    "rows": 100,
+}
 
 
 # ── Robots.txt helpers ────────────────────────────────────────────────────────
@@ -212,7 +218,10 @@ def _parse_rss(text: str) -> list[dict[str, Any]]:
 # ── Fetch functions ───────────────────────────────────────────────────────────
 
 async def fetch_grants_gov(client: httpx.AsyncClient) -> list[dict[str, Any]]:
-    """POST to api.grants.gov search2 with a JSON body."""
+    """POST to api.grants.gov/v1/api/search2 with a JSON body.
+
+    Response envelope: {"data": {"oppHits": [{id, title, agency, closeDate, ...}], ...}}
+    """
     if not await _is_allowed(client, GRANTS_GOV_URL):
         return []
     try:
@@ -225,19 +234,38 @@ async def fetch_grants_gov(client: httpx.AsyncClient) -> list[dict[str, Any]]:
     except httpx.HTTPError:
         return []
 
-    payloads = _parse_json_payload(response.text)
+    try:
+        envelope = response.json()
+    except Exception:
+        return []
+
+    opp_hits: list[dict[str, Any]] = (
+        (envelope.get("data") or {}).get("oppHits")
+        or []
+    )
+    if not isinstance(opp_hits, list):
+        opp_hits = []
+
     grants: list[dict[str, Any]] = []
-    for payload in payloads[:100]:
-        # grants.gov search2 stores the canonical URL under "oppNumber"
+    for hit in opp_hits[:100]:
+        opp_id = hit.get("id", "")
         link = (
-            payload.get("source_url")
-            or (
-                f"https://www.grants.gov/search-results-detail/{payload['id']}"
-                if payload.get("id")
-                else GRANTS_GOV_URL
+            f"https://www.grants.gov/search-results-detail/{opp_id}"
+            if opp_id
+            else GRANTS_GOV_URL
+        )
+        grants.append(
+            _normalize_grant(
+                {
+                    "id": opp_id,
+                    "title": hit.get("title", ""),
+                    "provider": hit.get("agency", ""),
+                    "deadline": hit.get("closeDate", ""),
+                    "type": "Grant",
+                },
+                link,
             )
         )
-        grants.append(_normalize_grant(payload, link))
     return grants
 
 
@@ -296,29 +324,57 @@ async def fetch_nsf_awards(client: httpx.AsyncClient) -> list[dict[str, Any]]:
 
 
 async def fetch_world_bank_grants(client: httpx.AsyncClient) -> list[dict[str, Any]]:
-    """Fetch World Bank open-finance datasets catalogue."""
+    """Fetch World Bank project search results (structured JSON, no auth).
+
+    Response envelope: {"projects": {"<id>": {id, project_name, totalamt, ...}, ...}}
+    """
     if not await _is_allowed(client, WORLD_BANK_URL):
         return []
     try:
-        response = await client.get(WORLD_BANK_URL)
+        response = await client.get(WORLD_BANK_URL, params=WORLD_BANK_PARAMS)
         response.raise_for_status()
     except httpx.HTTPError:
         return []
 
-    payloads = _parse_json_payload(response.text)
+    try:
+        envelope = response.json()
+    except Exception:
+        return []
+
+    projects_raw = envelope.get("projects") or {}
+    # The API returns a dict keyed by project ID
+    if isinstance(projects_raw, dict):
+        project_list = list(projects_raw.values())
+    elif isinstance(projects_raw, list):
+        project_list = projects_raw
+    else:
+        project_list = []
+
     grants: list[dict[str, Any]] = []
-    for item in payloads[:100]:
-        name = str(item.get("name") or item.get("title") or "").strip()
-        description = str(item.get("description") or "").strip()
-        link = str(item.get("url") or item.get("link") or WORLD_BANK_URL)
+    for item in project_list[:100]:
+        if not isinstance(item, dict):
+            continue
+        proj_id = str(item.get("id") or "")
+        name = str(item.get("project_name") or "").strip()
+        # project_abstract is wrapped in a {"cdata!": "..."} object
+        abstract_raw = item.get("project_abstract") or item.get("pdo") or {}
+        description = (
+            abstract_raw.get("cdata!", "")
+            if isinstance(abstract_raw, dict)
+            else str(abstract_raw)
+        ).strip()
+        link = str(item.get("url") or WORLD_BANK_URL)
         grants.append(
             _normalize_grant(
                 {
-                    "id": item.get("id") or _fallback_identifier(name, link),
+                    "id": proj_id or _fallback_identifier(name, link),
                     "title": name,
                     "description": description,
                     "provider": "World Bank",
-                    "type": "Grant/Dataset",
+                    "amount": str(item.get("totalamt") or ""),
+                    "deadline": str(item.get("boardapprovaldate") or ""),
+                    "type": "Development Grant",
+                    "country": "Global",
                 },
                 link,
             )
