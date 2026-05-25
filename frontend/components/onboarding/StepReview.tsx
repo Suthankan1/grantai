@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { SummaryRow } from "./SummaryRow";
 import { deadlinePreferences } from "@/lib/onboarding-constants";
+import { API_BASE_URL } from "@/lib/api";
 
 interface StepReviewProps {
   values: any;
@@ -17,6 +18,13 @@ interface StepReviewProps {
 }
 
 export function StepReview({ values, submitError }: StepReviewProps) {
+  const getImageUrl = () => {
+    const url = values.profilePhotoUrl;
+    if (!url) return "/default-avatar.png";
+    if (url.startsWith("http") || url.startsWith("data:")) return url;
+    return `${API_BASE_URL}${url}`;
+  };
+
   return (
     <div className="space-y-5">
       <Card variant="glass" padding="none" className="overflow-hidden">
@@ -32,7 +40,7 @@ export function StepReview({ values, submitError }: StepReviewProps) {
             value={
               <div className="flex justify-end">
                 <img
-                  src={values.profilePhotoUrl || "/default-avatar.png"}
+                  src={getImageUrl()}
                   alt="Profile"
                   className="h-8 w-8 rounded-full object-cover ring-2 ring-[rgba(108,71,255,0.2)] bg-[rgba(108,71,255,0.12)]"
                   onError={(e) => {

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
-import { authLogout } from "@/lib/api";
+import { authLogout, API_BASE_URL } from "@/lib/api";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -155,8 +155,20 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       )}>
         {/* User Card */}
         <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <div className="relative h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center font-semibold text-white shadow-glow-sm border border-[rgba(240,240,255,0.08)]">
-            {getInitials(user?.fullName ?? null)}
+          <div className="relative h-10 w-10 shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center font-semibold text-white shadow-glow-sm border border-[rgba(240,240,255,0.08)]">
+            <span className="absolute inset-0 flex items-center justify-center">
+              {getInitials(user?.fullName ?? null)}
+            </span>
+            {user?.profilePhotoUrl && (
+              <img
+                src={user.profilePhotoUrl.startsWith("http") || user.profilePhotoUrl.startsWith("data:") ? user.profilePhotoUrl : `${API_BASE_URL}${user.profilePhotoUrl}`}
+                alt="Avatar"
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
           </div>
           
           {!isCollapsed && (

@@ -73,6 +73,7 @@ public class TrackerService {
             .user(user)
             .grant(grant)
             .status(status)
+            .bookmarked("Draft".equalsIgnoreCase(status))
             .notes(request.notes() != null ? request.notes() : "")
             .appliedDate(appliedDate)
             .build();
@@ -101,6 +102,7 @@ public class TrackerService {
             String oldStatus = entry.getStatus();
             String newStatus = request.status();
             entry.setStatus(newStatus);
+            entry.setBookmarked("Draft".equalsIgnoreCase(newStatus));
             if ("Applied".equalsIgnoreCase(newStatus) && !"Applied".equalsIgnoreCase(oldStatus) && entry.getAppliedDate() == null) {
                 entry.setAppliedDate(LocalDate.now());
             }
@@ -203,11 +205,15 @@ public class TrackerService {
             recentActivities.add(new DashboardStatsResponse.ActivityLog("1", "Welcome to your tracker! Click + in any column to start tracking grants.", "Just now"));
         }
 
+        long grantsBookmarked = entries.stream()
+            .filter(e -> "Draft".equalsIgnoreCase(e.getStatus()))
+            .count();
+
         return new DashboardStatsResponse(
             totalApplied,
             winRate,
             avgMatchScore,
-            entries.size(),
+            grantsBookmarked,
             totalWonAmount,
             totalAppliedAmount,
             upcomingDeadlines,
@@ -241,7 +247,8 @@ public class TrackerService {
             coverLetterStatus,
             coverLetterId,
             entry.getCreatedAt(),
-            entry.getUpdatedAt()
+            entry.getUpdatedAt(),
+            entry.isBookmarked()
         );
     }
 

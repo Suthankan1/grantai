@@ -70,6 +70,10 @@ public class UserProfile {
     @Column(name = "deadline_preference", length = 20)
     private DeadlinePreference deadlinePreference;
 
+    @Column(name = "email_reminders", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean emailReminders = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

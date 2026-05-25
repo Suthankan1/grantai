@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grantai.dto.ProfileUpdateRequest;
 import com.grantai.dto.ProfileResponse;
+import com.grantai.dto.NotificationSettingsDto;
 import com.grantai.entity.User;
 import com.grantai.entity.UserProfile;
 import com.grantai.repository.UserProfileRepository;
@@ -164,5 +165,30 @@ public class ProfileService {
             profile.getDeadlinePreference() != null ? profile.getDeadlinePreference().name() : null,
             user.isProfileComplete()
         );
+    }
+
+    @Transactional
+    public NotificationSettingsDto updateNotificationSettings(String userEmail, NotificationSettingsDto request) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        UserProfile profile = profileRepository.findByUserId(user.getId())
+            .orElse(UserProfile.builder().user(user).build());
+
+        profile.setEmailReminders(request.emailReminders());
+        profileRepository.save(profile);
+
+        return new NotificationSettingsDto(profile.isEmailReminders());
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationSettingsDto getNotificationSettings(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        UserProfile profile = profileRepository.findByUserId(user.getId())
+            .orElseGet(() -> UserProfile.builder().user(user).build());
+
+        return new NotificationSettingsDto(profile.isEmailReminders());
     }
 }

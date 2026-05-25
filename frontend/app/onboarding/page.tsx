@@ -27,7 +27,7 @@ import { StepReview } from "@/components/onboarding/StepReview";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, isAuthenticated, updateProfileComplete, setUser } = useAuthStore();
+  const { user, isAuthenticated, setUser } = useAuthStore();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -94,6 +94,7 @@ export default function OnboardingPage() {
             fullName: profile.fullName,
             role: user?.role ?? "USER",
             profileComplete: profile.profileComplete,
+            profilePhotoUrl: profile.profilePhotoUrl,
           });
         }
       } catch {
@@ -139,8 +140,15 @@ export default function OnboardingPage() {
     setSubmitError(null);
 
     try {
-      await saveProfile(data);
-      updateProfileComplete(true);
+      const profile = await saveProfile(data);
+      setUser({
+        id: profile.userId,
+        email: profile.email,
+        fullName: profile.fullName,
+        role: user?.role ?? "USER",
+        profileComplete: profile.profileComplete,
+        profilePhotoUrl: profile.profilePhotoUrl,
+      });
       confetti({ particleCount: 140, spread: 72, origin: { y: 0.68 } });
       window.setTimeout(() => router.push("/dashboard"), 650);
     } catch (error) {

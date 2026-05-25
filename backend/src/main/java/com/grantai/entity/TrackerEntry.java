@@ -52,6 +52,10 @@ public class TrackerEntry {
     @Column(nullable = false, length = 40)
     private String status;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean bookmarked = false;
+
     @Column(name = "applied_date")
     private LocalDate appliedDate;
 

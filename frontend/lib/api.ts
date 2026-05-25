@@ -75,6 +75,18 @@ export async function saveProfile(payload: Record<string, unknown>) {
   });
 }
 
+export async function uploadProfilePhoto(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiRequest<{ url: string }>("/api/profile/photo", {
+    method: "POST",
+    headers: {
+      "Content-Type": "none",
+    },
+    body: formData,
+  });
+}
+
 // ── Grants Search & Details ───────────────────────────────────────────────────
 
 export async function searchGrants(params: GrantSearchParams = {}) {

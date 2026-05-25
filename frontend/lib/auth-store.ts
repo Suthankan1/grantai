@@ -7,6 +7,7 @@ export interface AuthUser {
   fullName: string | null;
   role: string;
   profileComplete: boolean;
+  profilePhotoUrl?: string | null;
 }
 
 interface AuthState {
@@ -23,6 +24,7 @@ interface AuthActions {
   setToken: (token: string | null) => void;
   setLoading: (loading: boolean) => void;
   updateProfileComplete: (complete: boolean) => void;
+  updateProfilePhotoUrl: (url: string | null) => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -35,7 +37,7 @@ export const useAuthStore = create<AuthStore>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
-
+ 
       // Actions
       login: (user, token = null) =>
         set({
@@ -66,6 +68,11 @@ export const useAuthStore = create<AuthStore>()(
       updateProfileComplete: (complete) =>
         set((state) => ({
           user: state.user ? { ...state.user, profileComplete: complete } : null,
+        })),
+
+      updateProfilePhotoUrl: (url) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, profilePhotoUrl: url } : null,
         })),
     }),
     {

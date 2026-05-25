@@ -452,6 +452,10 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
     }
   }
 
+  if (path === "/api/profile/photo") {
+    return { url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256" } as unknown as T;
+  }
+
   // 3. Grants search & lookups
   if (path.startsWith("/api/grants/search")) {
     const url = new URL(path, "http://localhost");

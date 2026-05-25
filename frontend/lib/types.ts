@@ -116,6 +116,7 @@ export interface TrackerEntryApi {
   coverLetterId: string | null;
   createdAt: string;
   updatedAt: string;
+  bookmarked: boolean;
 }
 
 export interface TrackerCreatePayload {

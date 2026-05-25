@@ -97,6 +97,47 @@ export default function InterviewPrepPage() {
     setSessionFeedbacks,
   });
 
+  if (!grantQuery.isLoading && (grantQuery.isError || !grant)) {
+    return (
+      <div className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
+        {/* Sidebar Component */}
+        <Sidebar
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
+
+        {/* Main Panel */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative z-10">
+          {/* Sleek radial lights */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(108,71,255,0.14),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.06),_transparent_32%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)] -z-10" />
+          <div className="absolute inset-0 bg-grid opacity-25 -z-10" aria-hidden="true" />
+
+          <MobileHeader onMenuClick={() => setMobileSidebarOpen(true)} />
+
+          <section className="relative overflow-hidden px-4 py-8 sm:px-6 lg:px-8 flex-1 flex items-center justify-center">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(108,71,255,0.15),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(0,212,170,0.1),_transparent_24%),linear-gradient(180deg,_#05050c_0%,_#080810_100%)] -z-10" />
+            <div className="absolute inset-0 bg-grid opacity-30 -z-10" aria-hidden="true" />
+
+            <div className="relative z-10 mx-auto max-w-md w-full pb-10 pt-4">
+              <Card variant="glass-strong" className="p-8 text-center border-rose-500/20">
+                <CardTitle className="text-xl font-bold mb-2">Grant Not Found</CardTitle>
+                <p className="text-sm text-[var(--color-muted)] mb-6">
+                  Grant not found — it may have been removed
+                </p>
+                <Button asChild variant="outline" className="border-primary/40 hover:border-primary/80 text-white">
+                  <Link href="/grants">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Grants
+                  </Link>
+                </Button>
+              </Card>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
       {/* Sidebar Component */}
@@ -214,7 +255,11 @@ export default function InterviewPrepPage() {
                 {questionsError && (
                   <Card className="p-8 border-rose-500/30 bg-rose-500/5 text-center">
                     <p className="text-sm text-[var(--color-text)]">{questionsError}</p>
-                    <Button className="mt-4" onClick={retryQuestions}>
+                    <Button
+                      className="mt-4"
+                      onClick={retryQuestions}
+                      disabled={grantQuery.isLoading}
+                    >
                       Retry Generation
                     </Button>
                   </Card>

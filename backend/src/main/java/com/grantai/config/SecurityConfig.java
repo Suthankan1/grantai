@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                 // Public auth endpoints
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                // Public uploads
+                .requestMatchers("/uploads/**").permitAll()
                 // Public health check
                 .requestMatchers("/actuator/health").permitAll()
                 // All other endpoints require authentication
