@@ -99,14 +99,7 @@ export interface CoverLetterApi {
   updatedAt: string | null;
 }
 
-export interface CoverLetterGeneratePayload {
-  grantId: string;
-  tone?: string;
-  length?: string;
-  emphasis?: string[];
-  regenerationStyle?: string;
-  customPrompt?: string;
-}
+
 
 export interface TrackerEntryApi {
   id: string;
@@ -189,3 +182,13 @@ export interface InterviewSessionResponseApi {
   avgScore: number;
   createdAt: string;
 }
+
+export interface CoverLetterGeneratePayload {
+  grantId: string;
+  tone?: string;
+  length?: string;
+  emphasis?: string[];
+  customPrompt?: string;
+  regenerationStyle?: string;
+}
+

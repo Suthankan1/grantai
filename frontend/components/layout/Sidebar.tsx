@@ -28,8 +28,8 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Grant Finder", href: "/grants", icon: Search },
-  { label: "My Letters", href: "/letters", icon: FileText },
   { label: "Tracker", href: "/tracker", icon: Kanban },
+  { href: "/letters", label: "My Letters", icon: FileText },
   { label: "Interview Prep", href: "/interview", icon: Mic },
   { label: "Settings", href: "/onboarding", icon: Settings },
 ];
