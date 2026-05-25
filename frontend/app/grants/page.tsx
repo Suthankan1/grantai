@@ -450,28 +450,25 @@ export default function GrantsPage() {
                         rowHeight={460}
                         style={{ height: 750, width: "100%" }}
                         className="no-scrollbar"
-                        rowProps={{}}
-                        rowComponent={({ index, style }) => {
+                      >
+                        {({ index, style }) => {
                           const rowItems = chunkedGrants[index] || [];
                           return (
                             <div
                               style={{
                                 ...style,
-                                display: "grid",
+                                display: 'grid',
                                 gridTemplateColumns: `repeat(${columnsCount}, minmax(0, 1fr))`,
-                                gap: "16px",
-                                paddingBottom: "16px",
+                                gap: '16px',
                               }}
                             >
                               {rowItems.map((grant) => (
-                                <div key={grant.id} className="h-[440px]">
-                                  <GrantCard grant={grant as GrantSummaryApi} />
-                                </div>
+                                <GrantCard key={grant.id} grant={grant} />
                               ))}
                             </div>
                           );
                         }}
-                      />
+                      </List>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

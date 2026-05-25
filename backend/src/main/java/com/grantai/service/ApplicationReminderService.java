@@ -40,6 +40,11 @@ public class ApplicationReminderService {
      */
     @Scheduled(cron = "0 0 9 * * ?")
     public void sendDailyReminders() {
+        if (sendGridApiKey == null || sendGridApiKey.isBlank()) {
+            log.info("SendGrid API key not configured — skipping reminder job");
+            return;
+        }
+
         log.info("Starting daily application deadline reminder scan...");
 
         LocalDate today = LocalDate.now();

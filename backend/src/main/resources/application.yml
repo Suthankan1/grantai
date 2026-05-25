@@ -47,6 +47,7 @@ sendgrid:
 logging:
   level:
     com.grantai: DEBUG
+    com.grantai.service.ApplicationReminderService: INFO
     org.springframework.security: WARN
 
 ---
