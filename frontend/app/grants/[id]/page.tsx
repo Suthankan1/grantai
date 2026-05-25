@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getGrantById } from "@/lib/api";
+import { getGrantById, createTracker } from "@/lib/api";
 
 function splitReasoning(reasoning: string | null | undefined) {
   if (!reasoning) return [];
@@ -94,11 +94,10 @@ export default function GrantDetailPage() {
   });
 
   const [saved, setSaved] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!grantId) return;
-    const tracker = JSON.parse(window.localStorage.getItem("grantai-tracker") ?? "[]") as string[];
-    setSaved(tracker.includes(grantId));
+    // Optimistic check removed — backend is source of truth
   }, [grantId]);
 
   const grant = grantQuery.data;
@@ -224,17 +223,30 @@ export default function GrantDetailPage() {
                     variant={saved ? "accent" : "outline"}
                     size="lg"
                     className="w-full"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!grantId) return;
-                      const stored = JSON.parse(window.localStorage.getItem("grantai-tracker") ?? "[]") as string[];
-                      const next = stored.includes(grantId) ? stored : [...stored, grantId];
-                      window.localStorage.setItem("grantai-tracker", JSON.stringify(next));
-                      setSaved(true);
+                      try {
+                        await createTracker({ grantId });
+                        setSaved(true);
+                        setStatusMessage('Grant added to your tracker!');
+                      } catch (err: unknown) {
+                        if (err instanceof Error && err.message?.includes('already tracked')) {
+                          setSaved(true);
+                        } else {
+                          console.error('Tracker add failed:', err);
+                        }
+                      }
                     }}
                   >
                     <FileText className="h-4 w-4" />
                     {saved ? "Added to Tracker" : "Add to Tracker"}
                   </Button>
+
+                  {statusMessage && (
+                    <div className="mt-3 text-center text-sm text-[var(--color-muted)]">
+                      {statusMessage}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
