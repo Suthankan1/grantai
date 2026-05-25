@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { NotificationsPanel } from "./NotificationsPanel";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -165,13 +166,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               {getInitials(user?.fullName ?? null)}
             </span>
             {user?.profilePhotoUrl && (
-              <img
+              <Image
                 src={user.profilePhotoUrl.startsWith("http") || user.profilePhotoUrl.startsWith("data:") ? user.profilePhotoUrl : `${API_BASE_URL}${user.profilePhotoUrl}`}
                 alt="Avatar"
+                fill
+                unoptimized
                 className="absolute inset-0 h-full w-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
               />
             )}
           </div>

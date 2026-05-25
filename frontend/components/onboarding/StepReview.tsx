@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import {
@@ -272,6 +273,7 @@ function ClaudeTip({
   const [tip, setTip] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const researchInterestsList = researchInterests;
 
   useEffect(() => {
     let cancelled = false;
@@ -282,7 +284,7 @@ function ClaudeTip({
     fetch("/api/profile-tip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fieldOfStudy, researchInterests }),
+      body: JSON.stringify({ fieldOfStudy, researchInterests: researchInterestsList }),
     })
       .then((r) => r.json())
       .then((data: { tip?: string | null; error?: string }) => {
@@ -304,7 +306,7 @@ function ClaudeTip({
     return () => {
       cancelled = true;
     };
-  }, [fieldOfStudy, researchInterests.join(",")]);
+  }, [fieldOfStudy, researchInterestsList]);
 
   if (error) return null;
 
@@ -488,14 +490,15 @@ export function StepReview({ values, submitError }: StepReviewProps) {
             label="Profile photo"
             value={
               <div className="flex justify-end">
-                <img
-                  src={getImageUrl()}
-                  alt="Profile"
-                  className="h-8 w-8 rounded-full object-cover ring-2 ring-[rgba(108,71,255,0.2)] bg-[rgba(108,71,255,0.12)]"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/default-avatar.png";
-                  }}
-                />
+                <div className="relative h-8 w-8 overflow-hidden rounded-full ring-2 ring-[rgba(108,71,255,0.2)] bg-[rgba(108,71,255,0.12)]">
+                  <Image
+                    src={getImageUrl()}
+                    alt="Profile"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
               </div>
             }
           />

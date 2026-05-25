@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -111,13 +112,12 @@ export function StepPersonalInfo({
               </div>
             ) : (
               <>
-                <img
+                <Image
                   src={getImageUrl()}
                   alt="Profile"
+                  fill
+                  unoptimized
                   className="h-16 w-16 rounded-full object-cover group-hover:scale-105 transition-transform"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/default-avatar.png";
-                  }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-[10px] font-medium text-white">Upload</span>
