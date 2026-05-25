@@ -15,6 +15,8 @@ COPY app ./app
 RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi
 
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

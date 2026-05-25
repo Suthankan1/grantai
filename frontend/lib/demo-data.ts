@@ -517,6 +517,8 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
     }
   }
 
+  if (path === '/api/tracker/stats') { return { totalApplied: 7, winRate: 28.6, avgMatchScore: 74, totalBookmarked: 12, totalWonAmount: 45000, totalAppliedAmount: 180000, upcomingDeadlines: [{ id: 'd1', grantId: 'g1', grantTitle: 'Gates Foundation Education Grant', grantProvider: 'Gates Foundation', deadline: '2026-06-15', daysLeft: 21 }], recentActivities: [{ id: 'a1', description: 'Application for Rhodes Scholarship moved to Under Review.', timeAgo: '2h ago' }, { id: 'a2', description: 'Cover letter generated for Fulbright Program.', timeAgo: '1d ago' }] } as unknown as T; }
+
   if (path.startsWith("/api/tracker/stats")) {
     const trackerList = JSON.parse(window.localStorage.getItem("grantai-demo-tracker") || "[]");
     
@@ -656,6 +658,8 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
       suggested_answer: "To handle novel sequences, we combine structural evolutionary constraints with self-supervised checkpoints..."
     } as unknown as T;
   }
+
+  if (path.includes('/api/interview/sessions') && options.method === 'GET') { return [] as unknown as T; }
 
   if (path === "/api/interview/sessions") {
     if (method === "GET") {

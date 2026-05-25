@@ -26,15 +26,7 @@ const buttonVariants = cva(
           "hover:shadow-glow hover:brightness-110",
           "border border-primary/30",
         ],
-        // Glow — primary with pulsing glow animation
-        glow: [
-          "bg-gradient-to-r from-[#6C47FF] to-[#9B73FF]",
-          "text-white",
-          "shadow-glow-sm",
-          "hover:shadow-glow hover:brightness-110",
-          "animate-pulse-glow",
-          "border border-primary/30",
-        ],
+        glow: 'bg-[var(--color-primary)] text-white shadow-[0_0_20px_rgba(108,71,255,0.5),0_0_40px_rgba(108,71,255,0.25)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_0_30px_rgba(108,71,255,0.7)] transition-all duration-300',
         // Accent — teal/green accent color
         accent: [
           "bg-gradient-to-r from-[#00D4AA] to-[#00EEC0]",
