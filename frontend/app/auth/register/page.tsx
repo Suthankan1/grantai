@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Globe, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { authRegister } from "@/lib/api";
+import { authRegister, authGoogleLogin } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 
 const registerSchema = z
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -68,6 +70,26 @@ export default function RegisterPage() {
       router.push("/onboarding");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to create the account.");
+    }
+  };
+
+  // Google sign-up: same flow as sign-in — backend finds-or-creates the user.
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setErrorMessage("Google did not return a credential. Please try again.");
+      return;
+    }
+    setIsGoogleLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await authGoogleLogin(credentialResponse.credential);
+      login(response.user, response.token);
+      // New Google users will have profileComplete=false → go to onboarding
+      router.push(response.user.profileComplete ? "/dashboard" : "/onboarding");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Google sign-up failed.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -171,20 +193,29 @@ export default function RegisterPage() {
         </Button>
 
         <div className="relative py-2 text-center text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
-          <span className="relative z-10 bg-[var(--bg-surface-raised)] px-3">or continue with</span>
+          <span className="relative z-10 bg-[var(--bg-surface-raised)] px-3">or sign up with</span>
           <span className="absolute left-0 top-1/2 h-px w-full bg-[var(--border-default)]" aria-hidden="true" />
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full"
-          onClick={() => window.alert("Google OAuth placeholder. Wire your provider here.")}
-        >
-          <Globe className="h-4 w-4" />
-          Continue with Google
-        </Button>
+        {/* Google Sign-Up — same backend endpoint as sign-in (find-or-create) */}
+        <div className="flex justify-center">
+          {isGoogleLoading ? (
+            <Button type="button" variant="outline" size="lg" className="w-full" loading>
+              Signing up with Google…
+            </Button>
+          ) : (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setErrorMessage("Google sign-up was cancelled or failed.")}
+              theme="filled_black"
+              shape="rectangular"
+              size="large"
+              text="signup_with"
+              width="100%"
+              logo_alignment="left"
+            />
+          )}
+        </div>
       </form>
     </AuthShell>
   );

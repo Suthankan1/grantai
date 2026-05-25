@@ -52,6 +52,13 @@ export async function authRefresh() {
   });
 }
 
+export async function authGoogleLogin(idToken: string) {
+  return apiRequest<AuthApiResponse>("/api/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+}
+
 // ── Profile ──────────────────────────────────────────────────────────────────
 
 export async function getProfile() {

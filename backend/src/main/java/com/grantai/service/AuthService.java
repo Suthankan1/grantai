@@ -1,7 +1,12 @@
 package com.grantai.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.grantai.config.JwtProperties;
 import com.grantai.dto.AuthResponse;
+import com.grantai.dto.GoogleAuthRequest;
 import com.grantai.dto.LoginRequest;
 import com.grantai.dto.RegisterRequest;
 import com.grantai.dto.UserDto;
@@ -15,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,11 +33,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
+
+    @Value("${google.client-id}")
+    private String googleClientId;
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -107,6 +118,69 @@ public class AuthService {
 
         log.info("User logged in: {}", user.getEmail());
         return new AuthResponse(toDto(user), accessToken, refreshTokenValue, "Login successful");
+    }
+
+    // ── Google OAuth ─────────────────────────────────────────────────
+
+    @Transactional
+    public AuthResponse googleAuth(GoogleAuthRequest request, HttpServletResponse response) {
+        // 1. Verify the Google ID token with Google's servers
+        GoogleIdToken idToken = verifyGoogleToken(request.idToken());
+        GoogleIdToken.Payload payload = idToken.getPayload();
+
+        String email = payload.getEmail().toLowerCase().trim();
+        String name  = (String) payload.get("name");
+        String picture = (String) payload.get("picture");
+
+        // 2. Find existing user or create a new one (no password needed)
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            User newUser = User.builder()
+                .email(email)
+                // Store a random hash — Google users never use password login
+                .passwordHash(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .fullName(name != null ? name : email)
+                .role(User.Role.USER)
+                .build();
+            log.info("New Google OAuth user created: {}", email);
+            return userRepository.save(newUser);
+        });
+
+        UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+            .username(user.getEmail())
+            .password(user.getPasswordHash())
+            .authorities("ROLE_" + user.getRole().name())
+            .build();
+
+        String accessToken      = jwtUtil.generateAccessToken(userDetails);
+        String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails);
+
+        // Revoke old refresh tokens, issue new ones
+        refreshTokenRepository.revokeAllByUser(user);
+        saveRefreshToken(user, refreshTokenValue);
+        setAuthCookies(response, accessToken, refreshTokenValue);
+
+        log.info("Google OAuth sign-in: {}", email);
+        return new AuthResponse(toDto(user), accessToken, refreshTokenValue, "Google sign-in successful");
+    }
+
+    private GoogleIdToken verifyGoogleToken(String tokenString) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+            GoogleIdToken idToken = verifier.verify(tokenString);
+            if (idToken == null) {
+                throw new IllegalArgumentException("Invalid or expired Google token.");
+            }
+            return idToken;
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Google token verification failed", e);
+            throw new IllegalArgumentException("Google authentication failed. Please try again.");
+        }
     }
 
     // ── Refresh ──────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 package com.grantai.controller;
 
 import com.grantai.dto.AuthResponse;
+import com.grantai.dto.GoogleAuthRequest;
 import com.grantai.dto.LoginRequest;
 import com.grantai.dto.RegisterRequest;
 import com.grantai.service.AuthService;
@@ -71,5 +72,17 @@ public class AuthController {
     ) {
         authService.logout(request, response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
+    /**
+     * POST /api/auth/google
+     * Verify a Google ID token, find-or-create the user, and return JWT cookies.
+     */
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleAuth(
+        @Valid @RequestBody GoogleAuthRequest request,
+        HttpServletResponse response
+    ) {
+        AuthResponse authResponse = authService.googleAuth(request, response);
+        return ResponseEntity.ok(authResponse);
     }
 }

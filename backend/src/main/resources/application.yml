@@ -44,6 +44,9 @@ sendgrid:
   api-key: ${SENDGRID_API_KEY:}
   from-email: ${SENDGRID_FROM_EMAIL:no-reply@grantai.com}
 
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
 logging:
   level:
     com.grantai: DEBUG

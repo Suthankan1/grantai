@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { DemoBanner } from "@/components/layout/DemoBanner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { GoogleAuthProvider } from "@/components/providers/google-auth-provider";
 import "./globals.css";
 
 
@@ -113,20 +114,22 @@ export default function RootLayout({
           Skip to main content
         </a>
 
-        <QueryProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-            {/* Guided Demo Mode Alert Banner */}
-            <DemoBanner />
+        <GoogleAuthProvider>
+          <QueryProvider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+              {/* Guided Demo Mode Alert Banner */}
+              <DemoBanner />
 
-            {/* Global navigation */}
-            <Navbar />
+              {/* Global navigation */}
+              <Navbar />
 
-            {/* Page content */}
-            <main id="main-content" tabIndex={-1}>
-              {children}
-            </main>
-          </ThemeProvider>
-        </QueryProvider>
+              {/* Page content */}
+              <main id="main-content" tabIndex={-1}>
+                {children}
+              </main>
+            </ThemeProvider>
+          </QueryProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

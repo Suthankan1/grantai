@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Globe, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { authLogin } from "@/lib/api";
+import { authLogin, authGoogleLogin } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 
 const loginSchema = z.object({
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -54,6 +56,26 @@ export default function LoginPage() {
       router.push(response.user.profileComplete ? "/dashboard" : "/onboarding");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to sign in.");
+    }
+  };
+
+  // Called by GoogleLogin component on successful Google sign-in.
+  // `credential` is the raw Google ID token (JWT) we send to our backend.
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setErrorMessage("Google did not return a credential. Please try again.");
+      return;
+    }
+    setIsGoogleLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await authGoogleLogin(credentialResponse.credential);
+      login(response.user, response.token);
+      router.push(response.user.profileComplete ? "/dashboard" : "/onboarding");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Google sign-in failed.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -132,16 +154,25 @@ export default function LoginPage() {
           <span className="absolute left-0 top-1/2 h-px w-full bg-[var(--border-default)]" aria-hidden="true" />
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full"
-          onClick={() => window.alert("Google OAuth placeholder. Wire your provider here.")}
-        >
-          <Globe className="h-4 w-4" />
-          Continue with Google
-        </Button>
+        {/* Google Sign-In — uses @react-oauth/google which gives us an ID token */}
+        <div className="flex justify-center">
+          {isGoogleLoading ? (
+            <Button type="button" variant="outline" size="lg" className="w-full" loading>
+              Signing in with Google…
+            </Button>
+          ) : (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setErrorMessage("Google sign-in was cancelled or failed.")}
+              theme="filled_black"
+              shape="rectangular"
+              size="large"
+              text="signin_with"
+              width="100%"
+              logo_alignment="left"
+            />
+          )}
+        </div>
       </form>
     </AuthShell>
   );
