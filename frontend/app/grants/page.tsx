@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { FixedSizeList as List } from "react-window";
 import { GrantCard } from "@/components/grants/GrantCard";
+import { CompareBar } from "@/components/grants/CompareBar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -761,6 +762,7 @@ export default function GrantsPage() {
               )}
             </main>
           </div>
+          <CompareBar />
         </section>
       </div>
     </div>

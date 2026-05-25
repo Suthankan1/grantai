@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ExternalLink, FileText, Sparkles, Loader2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, Copy, ExternalLink, FileText, Loader2, Sparkles, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,26 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
+function readChecklist(storageKey: string, requiredDocuments: string[]) {
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) {
+      return [] as string[];
+    }
+
+    const parsed = JSON.parse(stored) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [] as string[];
+    }
+
+    return parsed
+      .filter((item): item is string => typeof item === "string")
+      .filter((item) => requiredDocuments.includes(item));
+  } catch {
+    return [] as string[];
+  }
+}
+
 export default function GrantDetailPage() {
   const params = useParams<{ id: string }>();
   const grantId = params?.id;
@@ -97,6 +117,7 @@ export default function GrantDetailPage() {
   const [saved, setSaved] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+  const [checkedDocuments, setCheckedDocuments] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (!grantId) return;
@@ -112,8 +133,51 @@ export default function GrantDetailPage() {
     void checkTracked();
   }, [grantId]);
 
+  React.useEffect(() => {
+    if (!grantId || typeof window === "undefined") return;
+
+    const storageKey = `grantai-checklist:${grantId}`;
+    setCheckedDocuments(readChecklist(storageKey, grantQuery.data?.documentsRequired ?? []));
+  }, [grantId, grantQuery.data?.documentsRequired]);
+
+  React.useEffect(() => {
+    if (!grantId || typeof window === "undefined") return;
+
+    const storageKey = `grantai-checklist:${grantId}`;
+    window.localStorage.setItem(storageKey, JSON.stringify(checkedDocuments));
+  }, [checkedDocuments, grantId]);
+
   const grant = grantQuery.data;
   const insights = splitReasoning(grant?.matchReasoning);
+  const requiredDocuments = grant?.documentsRequired ?? [];
+  const completedDocuments = checkedDocuments.filter((item) => requiredDocuments.includes(item));
+  const documentsReadyCount = completedDocuments.length;
+  const allDocumentsReady = requiredDocuments.length > 0 && documentsReadyCount === requiredDocuments.length;
+
+  const toggleDocument = (documentName: string) => {
+    setCheckedDocuments((current) =>
+      current.includes(documentName)
+        ? current.filter((item) => item !== documentName)
+        : [...current, documentName]
+    );
+  };
+
+  const copyChecklist = async () => {
+    if (requiredDocuments.length === 0) return;
+
+    const checklistText = requiredDocuments.map((documentName) => {
+      const checked = checkedDocuments.includes(documentName) ? "[x]" : "[ ]";
+      return `${checked} ${documentName}`;
+    }).join("\n");
+
+    try {
+      await navigator.clipboard.writeText(`Application Checklist for ${grant?.title ?? "this grant"}\n\n${checklistText}`);
+      setStatusMessage("Checklist copied to clipboard.");
+    } catch (err) {
+      console.error("Failed to copy checklist:", err);
+      setStatusMessage("Unable to copy the checklist right now.");
+    }
+  };
 
   const handleGenerateLetter = async () => {
     if (!grant?.id) return;
@@ -217,10 +281,75 @@ export default function GrantDetailPage() {
               <DetailRow label="Timeline" value={grant.timeline ?? "Timeline details were not provided."} />
               <DetailRow
                 label="Documents required"
-                value={grant.documentsRequired.length > 0 ? grant.documentsRequired.join(", ") : "No document list available."}
+                value={grant.documentsRequired.length > 0 ? `${grant.documentsRequired.length} documents listed` : "No document list available."}
               />
               <DetailRow label="Application URL" value={grant.applicationUrl ? <a className="text-[#00D4AA] underline-offset-4 hover:underline" href={grant.applicationUrl} target="_blank" rel="noreferrer">Open application</a> : "Not available"} />
             </div>
+
+            <Card variant="glass-strong" padding="none" className="overflow-hidden">
+              <CardHeader className="border-b border-[var(--border-default)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <CardTitle>Application Checklist</CardTitle>
+                    <p className="mt-1 text-sm text-[var(--color-muted)]">
+                      {requiredDocuments.length > 0
+                        ? `${documentsReadyCount} of ${requiredDocuments.length} documents ready`
+                        : "No required documents were listed for this grant."}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={copyChecklist} disabled={requiredDocuments.length === 0}>
+                    <Copy className="h-4 w-4" />
+                    Copy Checklist
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-5">
+                {requiredDocuments.length > 0 ? (
+                  <div className="space-y-3">
+                    {requiredDocuments.map((documentName) => {
+                      const checked = checkedDocuments.includes(documentName);
+
+                      return (
+                        <label
+                          key={documentName}
+                          className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] p-4 transition-colors hover:border-[rgba(0,212,170,0.35)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleDocument(documentName)}
+                            className="mt-1 h-4 w-4 rounded border-[var(--border-default)] text-[#00D4AA] focus:ring-[#00D4AA]"
+                          />
+                          <span className={checked ? "text-[var(--color-text)] line-through decoration-[#00D4AA]" : "text-[var(--color-text)]"}>
+                            {documentName}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] p-4 text-sm text-[var(--color-muted)]">
+                    No checklist items were provided for this grant.
+                  </div>
+                )}
+
+                {allDocumentsReady && grant.applicationUrl && (
+                  <div className="rounded-2xl border border-[rgba(0,212,170,0.35)] bg-[rgba(0,212,170,0.1)] p-4 text-sm text-white shadow-[0_0_0_1px_rgba(0,212,170,0.08)]">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <Check className="h-4 w-4 text-[#00D4AA]" />
+                        You&apos;re ready to apply! ✓
+                      </div>
+                      <Button asChild variant="glow" size="sm">
+                        <a href={grant.applicationUrl} target="_blank" rel="noreferrer">
+                          Open application
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">

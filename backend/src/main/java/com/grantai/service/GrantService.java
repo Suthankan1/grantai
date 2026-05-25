@@ -185,6 +185,24 @@ public class GrantService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, String> compare(String userEmail, Map<String, Object> providedProfile, List<String> grantIds) {
+        if (grantIds == null || grantIds.size() < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select at least two grants to compare");
+        }
+
+        Map<String, Object> profilePayload = providedProfile != null ? providedProfile : Map.of();
+        if (profilePayload.isEmpty()) {
+            ProfileResponse profile = loadProfile(userEmail);
+            if (profile != null) {
+                profilePayload = objectMapper.convertValue(profile, new TypeReference<Map<String, Object>>() {});
+            }
+        }
+
+        String recommendation = aiEngineClient.compareGrants(profilePayload, grantIds);
+        return Map.of("recommendation", recommendation);
+    }
+
     private ProfileResponse loadProfile(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {
             return null;

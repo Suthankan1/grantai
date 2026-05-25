@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { NotificationsPanel } from "./NotificationsPanel";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -153,6 +154,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         "p-4 border-t border-[rgba(240,240,255,0.05)] mt-auto shrink-0 flex flex-col gap-3",
         isCollapsed && "items-center"
       )}>
+        {/* Notification Bell */}
+        <div className={cn("flex", isCollapsed ? "justify-center" : "justify-start")}>
+          <NotificationsPanel isCollapsed={isCollapsed} />
+        </div>
         {/* User Card */}
         <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
           <div className="relative h-10 w-10 shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center font-semibold text-white shadow-glow-sm border border-[rgba(240,240,255,0.08)]">

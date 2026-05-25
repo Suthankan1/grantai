@@ -5,6 +5,8 @@ import type {
   GrantSearchParams,
   GrantSearchResponseApi,
   GrantDetailApi,
+  GrantCompareRequestApi,
+  GrantCompareResponseApi,
   CoverLetterApi,
   TrackerEntryApi,
   TrackerCreatePayload,
@@ -112,6 +114,13 @@ export async function searchGrants(params: GrantSearchParams = {}) {
 export async function getGrantById(id: string) {
   return apiRequest<GrantDetailApi>(`/api/grants/${id}`, {
     method: "GET",
+  });
+}
+
+export async function compareGrants(payload: GrantCompareRequestApi) {
+  return apiRequest<GrantCompareResponseApi>("/api/grants/compare", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

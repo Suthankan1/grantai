@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
+import { differenceInDays, parseISO, format } from "date-fns";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, FileText, Sparkles, Clock, AlertTriangle } from "lucide-react";
+import { Calendar, FileText, Sparkles, AlertTriangle } from "lucide-react";
 import { TrackerEntryApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -29,65 +30,72 @@ const TrackerCard = React.memo(function TrackerCard({ card, onClick }: TrackerCa
     cursor: "grab",
   };
 
-  // 1. Deadline Intelligence calculations
+  // 1. Deadline urgency indicator (date-fns)
   const getDeadlineInfo = (deadlineStr: string) => {
-    if (!deadlineStr) return { text: "No deadline", color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" };
-    
-    const deadline = new Date(deadlineStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    deadline.setHours(0, 0, 0, 0);
+    if (!deadlineStr)
+      return {
+        badge: null,
+        tooltipDate: null,
+      };
 
-    const diffTime = deadline.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const deadlineDate = parseISO(deadlineStr);
+    const daysLeft = differenceInDays(deadlineDate, new Date());
+    const tooltipDate = format(deadlineDate, "MMMM d, yyyy");
 
-    if (diffDays < 0) {
+    if (daysLeft < 0) {
+      // Deadline has passed
       return {
-        text: "Passed",
-        color: "text-gray-400",
-        bg: "bg-gray-500/10",
-        border: "border-gray-500/20",
-        icon: Clock,
+        badge: {
+          emoji: "⏰",
+          label: "Deadline passed",
+          className: "text-[var(--color-muted)] bg-gray-500/10 border-gray-500/20",
+          pulse: false,
+        },
+        tooltipDate,
       };
-    } else if (diffDays === 0) {
+    } else if (daysLeft <= 3) {
+      // Critical — pulsing red
       return {
-        text: "Due today",
-        color: "text-red-400 font-semibold animate-pulse",
-        bg: "bg-red-500/15",
-        border: "border-red-500/30",
-        icon: AlertTriangle,
+        badge: {
+          emoji: "🔴",
+          label: `${daysLeft}d left`,
+          className: "text-red-400 font-semibold bg-red-500/15 border-red-500/35",
+          pulse: true,
+        },
+        tooltipDate,
       };
-    } else if (diffDays === 1) {
+    } else if (daysLeft <= 7) {
+      // Urgent — amber
       return {
-        text: "1 day left",
-        color: "text-red-400 font-semibold",
-        bg: "bg-red-500/15",
-        border: "border-red-500/30",
-        icon: Clock,
+        badge: {
+          emoji: "⚠️",
+          label: `${daysLeft}d left`,
+          className: "text-amber-400 font-semibold bg-amber-500/10 border-amber-500/30",
+          pulse: false,
+        },
+        tooltipDate,
       };
-    } else if (diffDays < 7) {
+    } else if (daysLeft <= 14) {
+      // Approaching — yellow
       return {
-        text: `${diffDays} days left`,
-        color: "text-red-400 font-semibold",
-        bg: "bg-red-500/15",
-        border: "border-red-500/30",
-        icon: Clock,
-      };
-    } else if (diffDays <= 30) {
-      return {
-        text: `${diffDays} days left`,
-        color: "text-amber-400",
-        bg: "bg-amber-500/10",
-        border: "border-amber-500/25",
-        icon: Clock,
+        badge: {
+          emoji: "📅",
+          label: `${daysLeft}d left`,
+          className: "text-yellow-400 bg-yellow-500/10 border-yellow-500/25",
+          pulse: false,
+        },
+        tooltipDate,
       };
     } else {
+      // Plenty of time — use existing subtle style
       return {
-        text: `${diffDays} days left`,
-        color: "text-emerald-400",
-        bg: "bg-emerald-500/10",
-        border: "border-emerald-500/25",
-        icon: Clock,
+        badge: {
+          emoji: "📅",
+          label: `${daysLeft}d left`,
+          className: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+          pulse: false,
+        },
+        tooltipDate,
       };
     }
   };
@@ -177,11 +185,20 @@ const TrackerCard = React.memo(function TrackerCard({ card, onClick }: TrackerCa
 
       {/* Badges / Meta row */}
       <div className="mt-1 flex flex-wrap gap-2 items-center justify-between border-t border-[rgba(240,240,255,0.04)] pt-3">
-        {/* Deadline Indicator */}
-        <div className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium border", deadlineInfo.bg, deadlineInfo.border, deadlineInfo.color)}>
-          <Clock className="h-3 w-3" />
-          {deadlineInfo.text}
-        </div>
+        {/* Deadline Urgency Badge */}
+        {deadlineInfo.badge && (
+          <div
+            title={deadlineInfo.tooltipDate ? `Deadline: ${deadlineInfo.tooltipDate}` : undefined}
+            className={cn(
+              "relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium border cursor-default select-none",
+              deadlineInfo.badge.className,
+              deadlineInfo.badge.pulse && "animate-pulse",
+            )}
+          >
+            <span aria-hidden="true">{deadlineInfo.badge.emoji}</span>
+            {deadlineInfo.badge.label}
+          </div>
+        )}
 
         {/* Cover Letter status badge */}
         {letterBadge && (

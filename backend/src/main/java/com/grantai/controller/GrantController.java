@@ -1,6 +1,7 @@
 package com.grantai.controller;
 
 import com.grantai.dto.GrantDetailResponse;
+import com.grantai.dto.GrantCompareRequest;
 import com.grantai.dto.GrantSearchResponse;
 import com.grantai.service.GrantService;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -55,5 +58,19 @@ public class GrantController {
         @PathVariable String id
     ) {
         return ResponseEntity.ok(grantService.getById(userDetails != null ? userDetails.getUsername() : null, id));
+    }
+
+    @PostMapping("/compare")
+    public ResponseEntity<?> compare(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestBody GrantCompareRequest request
+    ) {
+        return ResponseEntity.ok(
+            grantService.compare(
+                userDetails != null ? userDetails.getUsername() : null,
+                request.profile(),
+                request.grantIds()
+            )
+        );
     }
 }

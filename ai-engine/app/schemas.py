@@ -30,3 +30,8 @@ class InterviewFeedbackRequest(BaseModel):
 class EmbedRequest(BaseModel):
     text: str | None = None
     texts: list[str] | None = None
+
+
+class CompareRequest(BaseModel):
+    profile: dict[str, Any] = Field(default_factory=dict)
+    grantIds: list[str] = Field(default_factory=list)

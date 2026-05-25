@@ -120,6 +120,44 @@ public class AiEngineClient {
         }
     }
 
+    public String compareGrants(Map<String, Object> profile, java.util.List<String> grantIds) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("profile", profile != null ? profile : Map.of());
+        payload.put("grantIds", grantIds != null ? grantIds : java.util.List.of());
+
+        try {
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/compare"))
+                .timeout(Duration.ofSeconds(matchTimeoutSeconds))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+
+            String apiKey = resolveApiKey();
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", apiKey);
+            }
+
+            HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.warn("AI compare request failed with status {} from {}. Body: {}", response.statusCode(), aiEngineUrl, truncate(response.body()));
+                return "No recommendation could be generated.";
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            return root.path("recommendation").asText("No recommendation could be generated.");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("AI compare request interrupted: {}", ex.getMessage());
+            return "No recommendation could be generated.";
+        } catch (HttpTimeoutException ex) {
+            log.warn("AI compare request timed out after {} seconds", matchTimeoutSeconds);
+            return "No recommendation could be generated.";
+        } catch (IOException ex) {
+            log.warn("AI compare request failed: {}", ex.getMessage());
+            return "No recommendation could be generated.";
+        }
+    }
+
     public InputStream streamLetter(
         Map<String, Object> profile,
         Map<String, Object> grant,
