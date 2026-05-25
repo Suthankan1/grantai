@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getInterviewFeedback, type InterviewQuestionApi } from "@/lib/api";
 
 interface UsePracticeModalProps {
@@ -50,42 +50,136 @@ export function usePracticeModal({
     suggested_answer: string;
   } | null>(null);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
 
-  // Handle simulate speech-to-text dictation
+  const recognitionRef = useRef<any>(null);
+
+  // Check if browser SpeechRecognition is supported
   useEffect(() => {
-    if (recordingState !== "recording") return;
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      setIsSpeechSupported(!!SpeechRecognition);
+    }
+  }, []);
 
-    const timer = setTimeout(() => {
-      setRecordingState("done");
-      // Pre-filled simulated text based on the category of the question
-      const sampleTranscripts: { [key: string]: string } = {
-        "Research Background":
-          "Our research focuses on novel methods to enhance neural net execution efficiency. We plan to utilize advanced compilers and customized sparse kernels to accelerate Transformer runtimes by up to three times on edge hardware, lowering barriers to deployment.",
-        Motivation:
-          "We are driven to solve real-world efficiency challenges in computing. This grant would enable us to scale our efforts, transition our research prototypes into fully audited open-source tools, and directly build community capacity.",
-        Technical:
-          "We plan to implement a secure rust-based compiler layer. By utilizing WebAssembly to isolate untrusted compilation artifacts and strict unit testing, we ensure that execution and security are balanced beautifully.",
-        Impact:
-          "By making our tools fully open source and highly compatible with legacy platforms, we enable academic labs with limited hardware budgets to run cutting-edge inference, fostering democratic AI research worldwide.",
-        "Future Plans":
-          "Over the next three years, we aim to expand our framework to support mobile deployment. We are forming partnerships with major universities to run training workshops and establish long-term maintenance of the repository.",
+  // Clean up recognition on unmount or when changing question
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, [practiceQuestion]);
+
+  const startSpeechRecognition = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    // If there is an active recognition, stop it first
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      // Keep track of previously finalized text to support continuous dictation
+      let baseText = userAnswer.trim();
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Beautifully append new words in real-time
+        let updatedText = baseText;
+        if (finalTranscript) {
+          if (updatedText) {
+            updatedText += " " + finalTranscript.trim();
+          } else {
+            updatedText = finalTranscript.trim();
+          }
+          baseText = updatedText; // Update our base text
+        }
+
+        const currentDisplay = interimTranscript
+          ? (updatedText ? `${updatedText} ${interimTranscript.trim()}` : interimTranscript.trim())
+          : updatedText;
+
+        setUserAnswer(currentDisplay);
       };
 
-      const category = practiceQuestion?.question.category || "Motivation";
-      setUserAnswer(sampleTranscripts[category] || sampleTranscripts["Motivation"]);
-    }, 4500);
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error !== "no-speech") {
+          setRecordingState("done");
+        }
+      };
 
-    return () => clearTimeout(timer);
-  }, [recordingState, practiceQuestion]);
+      recognition.onend = () => {
+        setRecordingState("done");
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setRecordingState("recording");
+    } catch (err) {
+      console.error("Failed to start speech recognition:", err);
+    }
+  };
+
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+    setRecordingState("done");
+  };
 
   const openPracticeModal = (q: InterviewQuestionApi, idx: number) => {
     setPracticeQuestion({ question: q, index: idx });
     setUserAnswer(sessionAnswers[idx] || "");
     setFeedback(sessionFeedbacks[idx] || null);
-    setRecordingState(sessionAnswers[idx] ? "idle" : "recording");
+    setRecordingState("idle"); // Default to idle
   };
 
   const closePracticeModal = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
     setPracticeQuestion(null);
     setUserAnswer("");
     setFeedback(null);
@@ -125,5 +219,8 @@ export function usePracticeModal({
     openPracticeModal,
     closePracticeModal,
     handleSubmitAnswer,
+    isSpeechSupported,
+    startSpeechRecognition,
+    stopSpeechRecognition,
   };
 }

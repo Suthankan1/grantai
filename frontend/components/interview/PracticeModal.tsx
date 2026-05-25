@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RotateCcw,
+  Mic,
   MicOff,
   Sparkles,
   CheckCircle2,
@@ -39,6 +40,9 @@ interface PracticeModalProps {
   submittingAnswer: boolean;
   closePracticeModal: () => void;
   handleSubmitAnswer: () => void;
+  isSpeechSupported: boolean;
+  startSpeechRecognition: () => void;
+  stopSpeechRecognition: () => void;
 }
 
 export function PracticeModal({
@@ -52,6 +56,9 @@ export function PracticeModal({
   submittingAnswer,
   closePracticeModal,
   handleSubmitAnswer,
+  isSpeechSupported,
+  startSpeechRecognition,
+  stopSpeechRecognition,
 }: PracticeModalProps) {
   // Framer Motion staggered animation configuration
   const feedbackContainerVariants = {
@@ -151,7 +158,7 @@ export function PracticeModal({
               <Button
                 type="button"
                 variant="glow"
-                onClick={() => setRecordingState("done")}
+                onClick={stopSpeechRecognition}
                 className="bg-rose-500 hover:bg-rose-600 border-none px-4 py-1.5 h-8 text-xs font-semibold"
               >
                 <MicOff className="h-3.5 w-3.5 mr-1" />
@@ -190,7 +197,7 @@ export function PracticeModal({
 
           {/* Action Buttons */}
           <div className="flex justify-between items-center border-t border-[var(--border-default)] pt-4">
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <Button
                 type="button"
                 variant="ghost"
@@ -204,6 +211,19 @@ export function PracticeModal({
               >
                 <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
               </Button>
+
+              {isSpeechSupported && recordingState === "idle" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startSpeechRecognition}
+                  disabled={submittingAnswer}
+                  className="border-primary/40 hover:border-primary/80 text-primary hover:text-white"
+                >
+                  <Mic className="h-3.5 w-3.5 mr-1 text-primary animate-pulse" /> Start Voice Input
+                </Button>
+              )}
             </div>
 
             <Button

@@ -80,9 +80,8 @@ public class TrackerService {
         TrackerEntry saved = trackerRepository.save(entry);
 
         // Check if there is an existing cover letter, link it or update it
-        Optional<CoverLetter> letterOpt = coverLetterRepository.findByUser_IdAndGrantId(user.getId(), grant.getId());
-        if (letterOpt.isPresent()) {
-            CoverLetter letter = letterOpt.get();
+        List<CoverLetter> letters = coverLetterRepository.findByUser_IdAndGrantId(user.getId(), grant.getId());
+        for (CoverLetter letter : letters) {
             if (!letter.isAddToTracker()) {
                 letter.setAddToTracker(true);
                 coverLetterRepository.save(letter);
@@ -222,7 +221,9 @@ public class TrackerService {
     }
 
     private TrackerResponse toResponse(TrackerEntry entry, String userId) {
-        Optional<CoverLetter> letterOpt = coverLetterRepository.findByUser_IdAndGrantId(userId, entry.getGrant().getId());
+        List<CoverLetter> letters = coverLetterRepository.findByUser_IdAndGrantId(userId, entry.getGrant().getId());
+        Optional<CoverLetter> letterOpt = letters.stream()
+            .max(Comparator.comparing(CoverLetter::getUpdatedAt));
         String coverLetterStatus = letterOpt.map(CoverLetter::getStatus).orElse("None");
         String coverLetterId = letterOpt.map(CoverLetter::getId).orElse(null);
 

@@ -86,6 +86,9 @@ export default function InterviewPrepPage() {
     openPracticeModal,
     closePracticeModal,
     handleSubmitAnswer,
+    isSpeechSupported,
+    startSpeechRecognition,
+    stopSpeechRecognition,
   } = usePracticeModal({
     grant,
     sessionAnswers,
@@ -250,6 +253,9 @@ export default function InterviewPrepPage() {
                   submittingAnswer={submittingAnswer}
                   closePracticeModal={closePracticeModal}
                   handleSubmitAnswer={handleSubmitAnswer}
+                  isSpeechSupported={isSpeechSupported}
+                  startSpeechRecognition={startSpeechRecognition}
+                  stopSpeechRecognition={stopSpeechRecognition}
                 />
               )}
             </AnimatePresence>

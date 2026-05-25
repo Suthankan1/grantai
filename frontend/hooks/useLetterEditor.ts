@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   authFetch,
   updateLetter,
+  createTracker,
   type CoverLetterGeneratePayload,
 } from "@/lib/api";
 
@@ -300,16 +301,26 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
   const addToTracker = React.useCallback(async () => {
     if (!grant) return;
 
-    const tracker = JSON.parse(window.localStorage.getItem("grantai-tracker") ?? "[]") as string[];
-    const next = tracker.includes(grant.id) ? tracker : [...tracker, grant.id];
-    window.localStorage.setItem("grantai-tracker", JSON.stringify(next));
-
-    if (letterId) {
-      await updateLetter(letterId, { addToTracker: true });
+    try {
+      await createTracker({ grantId: grant.id });
+      if (letterId) {
+        await updateLetter(letterId, { addToTracker: true });
+      }
+      setShowTrackerPrompt(false);
+      setStatusMessage("Added to application tracker.");
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message?.includes("already tracked")) {
+        if (letterId) {
+          await updateLetter(letterId, { addToTracker: true });
+        }
+        setShowTrackerPrompt(false);
+        setStatusMessage("Added to application tracker.");
+      } else {
+        console.error("Failed to add to tracker:", err);
+        const msg = err instanceof Error ? err.message : "Request failed.";
+        setStatusMessage(`Failed to add to tracker: ${msg}`);
+      }
     }
-
-    setShowTrackerPrompt(false);
-    setStatusMessage("Added to application tracker.");
   }, [grant, letterId]);
 
   return {

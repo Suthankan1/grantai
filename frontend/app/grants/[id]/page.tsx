@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getGrantById, createTracker } from "@/lib/api";
+import { getGrantById, createTracker, listTracker } from "@/lib/api";
 
 function splitReasoning(reasoning: string | null | undefined) {
   if (!reasoning) return [];
@@ -97,7 +97,17 @@ export default function GrantDetailPage() {
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Optimistic check removed — backend is source of truth
+    if (!grantId) return;
+    const checkTracked = async () => {
+      try {
+        const list = await listTracker();
+        const isTracked = list.some((entry) => entry.grantId === grantId);
+        setSaved(isTracked);
+      } catch (err) {
+        console.error("Failed to check tracker status:", err);
+      }
+    };
+    void checkTracked();
   }, [grantId]);
 
   const grant = grantQuery.data;
@@ -224,7 +234,7 @@ export default function GrantDetailPage() {
                     size="lg"
                     className="w-full"
                     onClick={async () => {
-                      if (!grantId) return;
+                      if (!grantId || saved) return;
                       try {
                         await createTracker({ grantId });
                         setSaved(true);

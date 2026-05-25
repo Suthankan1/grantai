@@ -60,7 +60,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   };
 
   const SidebarContent = (
-    <div className="flex flex-col h-full bg-[rgba(8,8,16,0.6)] backdrop-blur-md">
+    <div className="flex flex-col h-full overflow-hidden bg-[rgba(8,8,16,0.6)] backdrop-blur-md">
       {/* Brand Logo Header */}
       <div className={cn(
         "flex items-center h-16 px-6 border-b border-[rgba(240,240,255,0.05)] shrink-0",
