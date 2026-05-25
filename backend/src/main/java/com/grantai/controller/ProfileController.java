@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -82,7 +83,7 @@ public class ProfileController {
         @AuthenticationPrincipal UserDetails userDetails,
         @RequestBody ProfileUpdateRequest request
     ) {
-        return ResponseEntity.ok(profileService.updateProfile(userDetails.getUsername(), request));
+        return ResponseEntity.ok(profileService.updateProfile(requireUsername(userDetails), request));
     }
 
     /**
@@ -93,6 +94,13 @@ public class ProfileController {
     public ResponseEntity<ProfileResponse> getProfile(
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(profileService.getProfile(userDetails.getUsername()));
+        return ResponseEntity.ok(profileService.getProfile(requireUsername(userDetails)));
+    }
+
+    private String requireUsername(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return userDetails.getUsername();
     }
 }

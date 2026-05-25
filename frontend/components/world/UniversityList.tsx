@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, Globe, Award, ExternalLink, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Search, Globe, Award, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { countries } from "@/lib/onboarding-constants";
 
 interface University {
@@ -17,10 +17,236 @@ interface UniversityListProps {
   onClear: () => void;
 }
 
+const LOCAL_UNIVERSITY_DIRECTORY: Record<string, University[]> = {
+  "United States": [
+    {
+      name: "Harvard University",
+      country: "United States",
+      web_pages: ["https://www.harvard.edu"],
+      domains: ["harvard.edu"],
+      alpha_two_code: "US"
+    },
+    {
+      name: "Massachusetts Institute of Technology (MIT)",
+      country: "United States",
+      web_pages: ["https://www.mit.edu"],
+      domains: ["mit.edu"],
+      alpha_two_code: "US"
+    },
+    {
+      name: "Stanford University",
+      country: "United States",
+      web_pages: ["https://www.stanford.edu"],
+      domains: ["stanford.edu"],
+      alpha_two_code: "US"
+    },
+    {
+      name: "University of California, Berkeley",
+      country: "United States",
+      web_pages: ["https://www.berkeley.edu"],
+      domains: ["berkeley.edu"],
+      alpha_two_code: "US"
+    },
+    {
+      name: "UC San Francisco",
+      country: "United States",
+      web_pages: ["https://www.ucsf.edu"],
+      domains: ["ucsf.edu"],
+      alpha_two_code: "US"
+    },
+    {
+      name: "Boston University",
+      country: "United States",
+      web_pages: ["https://www.bu.edu"],
+      domains: ["bu.edu"],
+      alpha_two_code: "US"
+    }
+  ],
+  "United Kingdom": [
+    {
+      name: "Imperial College London",
+      country: "United Kingdom",
+      web_pages: ["https://www.imperial.ac.uk"],
+      domains: ["imperial.ac.uk"],
+      alpha_two_code: "GB"
+    },
+    {
+      name: "University College London (UCL)",
+      country: "United Kingdom",
+      web_pages: ["https://www.ucl.ac.uk"],
+      domains: ["ucl.ac.uk"],
+      alpha_two_code: "GB"
+    },
+    {
+      name: "King's College London",
+      country: "United Kingdom",
+      web_pages: ["https://www.kcl.ac.uk"],
+      domains: ["kcl.ac.uk"],
+      alpha_two_code: "GB"
+    },
+    {
+      name: "University of Oxford",
+      country: "United Kingdom",
+      web_pages: ["https://www.ox.ac.uk"],
+      domains: ["ox.ac.uk"],
+      alpha_two_code: "GB"
+    },
+    {
+      name: "University of Cambridge",
+      country: "United Kingdom",
+      web_pages: ["https://www.cam.ac.uk"],
+      domains: ["cam.ac.uk"],
+      alpha_two_code: "GB"
+    }
+  ],
+  Japan: [
+    {
+      name: "University of Tokyo",
+      country: "Japan",
+      web_pages: ["https://www.u-tokyo.ac.jp"],
+      domains: ["u-tokyo.ac.jp"],
+      alpha_two_code: "JP"
+    },
+    {
+      name: "Tokyo Institute of Technology",
+      country: "Japan",
+      web_pages: ["https://www.titech.ac.jp"],
+      domains: ["titech.ac.jp"],
+      alpha_two_code: "JP"
+    },
+    {
+      name: "Waseda University",
+      country: "Japan",
+      web_pages: ["https://www.waseda.jp"],
+      domains: ["waseda.jp"],
+      alpha_two_code: "JP"
+    }
+  ],
+  Germany: [
+    {
+      name: "Technical University of Munich (TUM)",
+      country: "Germany",
+      web_pages: ["https://www.tum.de"],
+      domains: ["tum.de"],
+      alpha_two_code: "DE"
+    },
+    {
+      name: "LMU Munich",
+      country: "Germany",
+      web_pages: ["https://www.lmu.de"],
+      domains: ["lmu.de"],
+      alpha_two_code: "DE"
+    }
+  ],
+  Switzerland: [
+    {
+      name: "ETH Zurich",
+      country: "Switzerland",
+      web_pages: ["https://ethz.ch"],
+      domains: ["ethz.ch"],
+      alpha_two_code: "CH"
+    },
+    {
+      name: "University of Zurich",
+      country: "Switzerland",
+      web_pages: ["https://www.uzh.ch"],
+      domains: ["uzh.ch"],
+      alpha_two_code: "CH"
+    }
+  ],
+  Singapore: [
+    {
+      name: "National University of Singapore (NUS)",
+      country: "Singapore",
+      web_pages: ["https://nus.edu.sg"],
+      domains: ["nus.edu.sg"],
+      alpha_two_code: "SG"
+    },
+    {
+      name: "Nanyang Technological University (NTU)",
+      country: "Singapore",
+      web_pages: ["https://www.ntu.edu.sg"],
+      domains: ["ntu.edu.sg"],
+      alpha_two_code: "SG"
+    }
+  ],
+  Canada: [
+    {
+      name: "University of Toronto",
+      country: "Canada",
+      web_pages: ["https://www.utoronto.ca"],
+      domains: ["utoronto.ca"],
+      alpha_two_code: "CA"
+    },
+    {
+      name: "York University",
+      country: "Canada",
+      web_pages: ["https://www.yorku.ca"],
+      domains: ["yorku.ca"],
+      alpha_two_code: "CA"
+    },
+    {
+      name: "Toronto Metropolitan University",
+      country: "Canada",
+      web_pages: ["https://www.torontomu.ca"],
+      domains: ["torontomu.ca"],
+      alpha_two_code: "CA"
+    }
+  ],
+  Australia: [
+    {
+      name: "University of Sydney",
+      country: "Australia",
+      web_pages: ["https://www.sydney.edu.au"],
+      domains: ["sydney.edu.au"],
+      alpha_two_code: "AU"
+    },
+    {
+      name: "University of New South Wales (UNSW)",
+      country: "Australia",
+      web_pages: ["https://www.unsw.edu.au"],
+      domains: ["unsw.edu.au"],
+      alpha_two_code: "AU"
+    },
+    {
+      name: "University of Technology Sydney (UTS)",
+      country: "Australia",
+      web_pages: ["https://www.uts.edu.au"],
+      domains: ["uts.edu.au"],
+      alpha_two_code: "AU"
+    }
+  ],
+  India: [
+    {
+      name: "Indian Institute of Science (IISc)",
+      country: "India",
+      web_pages: ["https://iisc.ac.in"],
+      domains: ["iisc.ac.in"],
+      alpha_two_code: "IN"
+    },
+    {
+      name: "Bangalore University",
+      country: "India",
+      web_pages: ["https://bangaloreuniversity.ac.in"],
+      domains: ["bangaloreuniversity.ac.in"],
+      alpha_two_code: "IN"
+    }
+  ]
+}
+
+function getUniversitiesForCountry(countryName: string) {
+  const exactMatch = LOCAL_UNIVERSITY_DIRECTORY[countryName];
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  return Object.entries(LOCAL_UNIVERSITY_DIRECTORY)
+    .find(([country]) => country.toLowerCase() === countryName.toLowerCase())?.[1]
+    ?? [];
+}
+
 export default function UniversityList({ countryName, onClear }: UniversityListProps) {
   const [universities, setUniversities] = useState<University[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
@@ -33,43 +259,22 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
     return found ? found.flag : "🌍";
   }, [countryName]);
 
-  // Fetch universities when country selection changes
-  const fetchUniversities = useCallback(async () => {
-    if (!countryName) return;
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    if (!countryName) {
+      setUniversities([]);
+      setSearchQuery("");
+      setCurrentPage(1);
+      return;
+    }
+
+    const localUniversities = getUniversitiesForCountry(countryName)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    setUniversities(localUniversities);
     setSearchQuery("");
     setCurrentPage(1);
-    
-    try {
-      // Fetch from the free Hipo Labs Universities API
-      const response = await fetch(
-        `https://universities.hipo.labs.com/search?country=${encodeURIComponent(countryName)}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to load university directory.");
-      }
-      
-      const data = await response.json();
-      
-      // Sort alphabetically
-      const sorted = (data as University[]).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      );
-      
-      setUniversities(sorted);
-    } catch (err: unknown) {
-      console.error(err);
-      setError("Unable to fetch university records. Please check your connection or try again.");
-    } finally {
-      setLoading(false);
-    }
   }, [countryName]);
-
-  useEffect(() => {
-    fetchUniversities();
-  }, [fetchUniversities]);
 
   // Filter universities based on search query
   const filteredUniversities = useMemo(() => {
@@ -119,7 +324,7 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
               {countryName}
             </h2>
             <p className="text-xs text-[var(--color-muted)] mt-0.5">
-              {loading ? "Searching directory..." : `${universities.length} universities registered`}
+              {`${universities.length} universities registered`}
             </p>
           </div>
         </div>
@@ -132,53 +337,23 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
       </div>
 
       {/* Search box */}
-      {!error && (
-        <div className="relative shrink-0">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-[var(--color-muted)]" />
-          <input
-            type="text"
-            placeholder="Search universities by name or domain..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full bg-[rgba(8,8,16,0.5)] border border-[var(--border-default)] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:border-[#6C47FF] focus:ring-1 focus:ring-[#6C47FF] transition-all duration-300 outline-none"
-          />
-        </div>
-      )}
+      <div className="relative shrink-0">
+        <Search className="absolute left-3.5 top-3 h-4 w-4 text-[var(--color-muted)]" />
+        <input
+          type="text"
+          placeholder="Search universities by name or domain..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full bg-[rgba(8,8,16,0.5)] border border-[var(--border-default)] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:border-[#6C47FF] focus:ring-1 focus:ring-[#6C47FF] transition-all duration-300 outline-none"
+        />
+      </div>
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto pr-1 min-h-[300px]">
-        {loading ? (
-          // Shimmer Skeleton Loader
-          <div className="space-y-4">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="shimmer border border-[var(--border-default)] rounded-xl p-5 h-[116px] animate-pulse opacity-50"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          // Error Message
-          <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-red-500/20 bg-red-500/5 rounded-2xl h-full space-y-4">
-            <AlertCircle className="h-10 w-10 text-red-400" />
-            <div>
-              <p className="text-sm font-semibold text-white">Database Error</p>
-              <p className="text-xs text-[var(--color-muted)] mt-1 max-w-xs">
-                {error}
-              </p>
-            </div>
-            <button
-              onClick={fetchUniversities}
-              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition duration-200"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Retry Fetch
-            </button>
-          </div>
-        ) : filteredUniversities.length === 0 ? (
+        {filteredUniversities.length === 0 ? (
           // Empty State
           <div className="flex flex-col items-center justify-center text-center py-16 text-[var(--color-muted)] space-y-3">
             <Globe className="h-10 w-10 stroke-1 text-[var(--color-muted)] opacity-50" />
@@ -241,7 +416,7 @@ export default function UniversityList({ countryName, onClear }: UniversityListP
       </div>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && !loading && !error && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-[var(--border-default)] pt-4 shrink-0">
           <button
             onClick={() => handlePageChange(currentPage - 1)}

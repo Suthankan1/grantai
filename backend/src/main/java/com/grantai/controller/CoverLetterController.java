@@ -6,10 +6,12 @@ import com.grantai.dto.CoverLetterUpdateRequest;
 import com.grantai.service.CoverLetterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +36,7 @@ public class CoverLetterController {
         @AuthenticationPrincipal UserDetails userDetails,
         @Valid @RequestBody CoverLetterGenerateRequest request
     ) {
-        return coverLetterService.generate(userDetails.getUsername(), request);
+        return coverLetterService.generate(requireUsername(userDetails), request);
     }
 
     @GetMapping("/{id}")
@@ -42,7 +44,7 @@ public class CoverLetterController {
         @AuthenticationPrincipal UserDetails userDetails,
         @PathVariable String id
     ) {
-        return ResponseEntity.ok(coverLetterService.getById(userDetails.getUsername(), id));
+        return ResponseEntity.ok(coverLetterService.getById(requireUsername(userDetails), id));
     }
 
     @PutMapping("/{id}")
@@ -51,21 +53,28 @@ public class CoverLetterController {
         @PathVariable String id,
         @RequestBody CoverLetterUpdateRequest request
     ) {
-        return ResponseEntity.ok(coverLetterService.update(userDetails.getUsername(), id, request));
+        return ResponseEntity.ok(coverLetterService.update(requireUsername(userDetails), id, request));
     }
 
     @GetMapping
     public ResponseEntity<List<CoverLetterResponse>> list(
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(coverLetterService.list(userDetails.getUsername()));
+        return ResponseEntity.ok(coverLetterService.list(requireUsername(userDetails)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
         @AuthenticationPrincipal UserDetails userDetails,
         @PathVariable String id) {
-      coverLetterService.delete(userDetails.getUsername(), id);
+            coverLetterService.delete(requireUsername(userDetails), id);
       return ResponseEntity.noContent().build();
     }
+
+        private String requireUsername(UserDetails userDetails) {
+                if (userDetails == null) {
+                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+                }
+                return userDetails.getUsername();
+        }
 }
