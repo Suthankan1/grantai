@@ -31,6 +31,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -110,6 +113,14 @@ public class CoverLetterService {
 
     private void streamGeneration(SseEmitter emitter, ProfileResponse profile, Grant grant, CoverLetter letter) {
         StringBuilder content = new StringBuilder();
+        ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
+        heartbeatExecutor.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().name("ping").data(""));
+            } catch (Exception e) {
+                heartbeatExecutor.shutdown();
+            }
+        }, 20, 20, TimeUnit.SECONDS);
 
         try (InputStream stream = aiEngineClient.streamLetter(
             objectMapper.convertValue(profile, new TypeReference<Map<String, Object>>() {}),
@@ -160,6 +171,8 @@ public class CoverLetterService {
                 log.debug("Could not push SSE error event", ignored);
             }
             emitter.completeWithError(ex);
+        } finally {
+            heartbeatExecutor.shutdown();
         }
     }
 

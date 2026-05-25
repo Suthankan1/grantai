@@ -162,6 +162,7 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            "Accept": "text/event-stream",
           },
           body: JSON.stringify(payload),
         });
