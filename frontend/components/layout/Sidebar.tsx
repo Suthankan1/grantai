@@ -206,9 +206,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </div>
       </div>
 
-      {/* Desktop Sidebar (Permanent block) */}
+      {/* Desktop Sidebar Spacer (to maintain layout space) */}
       <aside className={cn(
-        "hidden md:block h-screen sticky top-0 shrink-0 self-start border-r border-[rgba(240,240,255,0.05)] bg-[#080810]/70 z-30 transition-all duration-300",
+        "hidden md:block h-screen shrink-0 transition-all duration-300 pointer-events-none invisible",
+        isCollapsed ? "w-20" : "w-64"
+      )} />
+
+      {/* Desktop Sidebar (Fixed viewport block) */}
+      <aside className={cn(
+        "hidden md:block fixed top-0 bottom-0 left-0 z-30 transition-all duration-300 border-r border-[rgba(240,240,255,0.05)] bg-[#080810]/70",
         isCollapsed ? "w-20" : "w-64"
       )}>
         {SidebarContent}
