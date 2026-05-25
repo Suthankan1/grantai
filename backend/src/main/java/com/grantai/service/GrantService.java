@@ -55,15 +55,29 @@ public class GrantService {
         int pageNumber = Math.max(page, 0);
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-        Page<Grant> grants = grantRepository.search(
-            normalizeText(q),
-            normalizeCsv(field),
-            normalizeCsv(country),
-            normalizeCsv(type),
-            minAmount,
-            maxDeadline,
-            pageable
-        );
+        Page<Grant> grants;
+        try {
+            grants = grantRepository.search(
+                normalizeText(q),
+                normalizeCsv(field),
+                normalizeCsv(country),
+                normalizeCsv(type),
+                minAmount,
+                maxDeadline,
+                pageable
+            );
+        } catch (Exception ex) {
+            log.warn("Full-text search failed, using ILIKE fallback: {}", ex.getMessage());
+            grants = grantRepository.searchFallback(
+                normalizeText(q),
+                normalizeCsv(field),
+                normalizeCsv(country),
+                normalizeCsv(type),
+                minAmount,
+                maxDeadline,
+                pageable
+            );
+        }
 
         Map<String, Object> filters = buildAiFilters(normalizeText(q), field, country, type, minAmount, maxDeadline);
         Map<String, AiEngineClient.ScoreResult> aiScores = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));

@@ -58,4 +58,7 @@ public interface GrantRepository extends JpaRepository<Grant, String> {
         @Param("maxDeadline") LocalDate maxDeadline,
         Pageable pageable
     );
+
+    @Query(value = "SELECT * FROM grants g WHERE (:q IS NULL OR :q = '' OR lower(g.title) LIKE lower(concat('%', :q, '%')) OR lower(g.description) LIKE lower(concat('%', :q, '%'))) AND (:fieldCsv IS NULL OR :fieldCsv = '' OR lower(g.field) = ANY (string_to_array(:fieldCsv, ','))) AND (:countryCsv IS NULL OR :countryCsv = '' OR lower(g.country_name) = ANY (string_to_array(:countryCsv, ','))) AND (:typeCsv IS NULL OR :typeCsv = '' OR lower(g.grant_type) = ANY (string_to_array(:typeCsv, ','))) AND (:minAmount IS NULL OR g.amount >= :minAmount) AND (:maxDeadline IS NULL OR g.deadline <= :maxDeadline) ORDER BY g.deadline ASC, g.updated_at DESC", countQuery = "SELECT count(*) FROM grants g WHERE (:q IS NULL OR :q = '' OR lower(g.title) LIKE lower(concat('%', :q, '%')))", nativeQuery = true)
+    Page<Grant> searchFallback(@Param("q") String q, @Param("fieldCsv") String fieldCsv, @Param("countryCsv") String countryCsv, @Param("typeCsv") String typeCsv, @Param("minAmount") BigDecimal minAmount, @Param("maxDeadline") LocalDate maxDeadline, Pageable pageable);
 }
