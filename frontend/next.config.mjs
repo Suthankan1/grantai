@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
+
   // TypeScript strict mode is enforced in tsconfig.json
   typescript: {
     ignoreBuildErrors: false,

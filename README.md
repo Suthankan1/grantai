@@ -15,6 +15,27 @@
 
 ---
 
+## Quick Start ⚡
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Suthankan1/grantai.git
+   cd grantai
+   ```
+2. **Configure environment variables:**
+   Copy `.env.example` to `.env` and fill in your `GEMINI_API_KEY`:
+   ```bash
+   cp .env.example .env
+   ```
+3. **Start the application:**
+   ```bash
+   docker-compose up --build
+   ```
+4. **Access the platform:**
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
 ## Monorepo Layout
 
 ```

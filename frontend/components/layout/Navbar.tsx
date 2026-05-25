@@ -179,6 +179,9 @@ export function Navbar() {
             {/* Auth buttons */}
             <div className="hidden md:flex items-center gap-3 shrink-0">
               <ThemeToggle />
+              <Button asChild variant="outline" size="sm" id="nav-try-demo">
+                <Link href="/demo">Try Demo</Link>
+              </Button>
               {isAuthenticated ? (
                 <>
                   <Button variant="outline" size="sm" asChild id="nav-dashboard">
@@ -381,6 +384,11 @@ function MobileMenu({
         animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ delay: 0.25, duration: 0.3 }}
       >
+        <Button variant="outline" size="lg" asChild id="mobile-nav-try-demo">
+          <Link href="/demo" onClick={onClose}>
+            Try Demo
+          </Link>
+        </Button>
         {isAuthenticated ? (
           <>
             <Button variant="outline" size="lg" asChild>

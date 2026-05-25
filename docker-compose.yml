@@ -41,6 +41,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-grantai_dev_secret}
       - AI_ENGINE_URL=http://ai-engine:8000
       - JWT_SECRET=${JWT_SECRET:-changeme_in_production_32_chars_min}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-no-reply@grantai.app}
     depends_on:
       postgres:
         condition: service_healthy
