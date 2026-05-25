@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, FileText, CheckCircle, Sparkles, Building, Globe, Award, ArrowRight } from "lucide-react";
+import { X, Calendar, FileText, CheckCircle, Building, Globe, Award, ArrowRight } from "lucide-react";
 import { TrackerEntryApi, TrackerUpdatePayload } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -131,7 +131,6 @@ export default function DetailDrawer({ card, isOpen, onClose, onUpdate, onDelete
     }).format(numericAmount);
   };
 
-  const isGeneratingLetter = card?.coverLetterStatus === "GENERATING";
 
   return (
     <AnimatePresence>
@@ -242,47 +241,22 @@ export default function DetailDrawer({ card, isOpen, onClose, onUpdate, onDelete
                 <Label className="text-xs text-[var(--color-muted)] uppercase tracking-wider font-semibold block">AI Cover Letter</Label>
                 
                 {card.coverLetterId ? (
-                  <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-400">
-                        <FileText className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-white">Cover Letter is Ready</div>
-                        <span className="text-[10px] text-[var(--color-muted)] font-medium">Auto-generated with GrantAI</span>
-                      </div>
-                    </div>
-                    <Button size="sm" asChild className="h-8.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
-                      <Link href={`/letters/${card.coverLetterId}?source=letter`}>View Letter</Link>
-                    </Button>
-                  </div>
-                ) : isGeneratingLetter ? (
-                  <div className="flex items-center justify-between rounded-xl border border-purple-500/30 bg-purple-500/5 p-3.5 animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-purple-500/10 p-2 text-purple-400">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-white">Generating cover letter...</div>
-                        <span className="text-[10px] text-[var(--color-muted)] font-medium">Assembling research variables</span>
-                      </div>
-                    </div>
-                  </div>
+                  <Link
+                    href={`/letters/${card.coverLetterId}?source=letter`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-sm text-white hover:bg-emerald-500/10 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" /> View Cover Letter
+                  </Link>
                 ) : (
-                  <div className="flex items-center justify-between rounded-xl border border-[var(--border-default)] bg-[rgba(240,240,255,0.01)] p-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-[rgba(240,240,255,0.03)] p-2 text-[var(--color-muted)]">
-                        <FileText className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-[rgba(240,240,255,0.85)]">No Cover Letter Found</div>
-                        <span className="text-[10px] text-[var(--color-muted)] font-medium">Optimize your submission</span>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" asChild className="h-8.5 rounded-lg text-xs border-[rgba(240,240,255,0.1)] hover:bg-[rgba(240,240,255,0.045)] text-white">
-                      <Link href={`/grants/${card.grantId}`}>Generate with AI</Link>
-                    </Button>
-                  </div>
+                  <span className="text-sm text-[var(--color-muted)]">
+                    No cover letter yet —{" "}
+                    <Link
+                      href={`/letters/${card.grantId}?source=grant`}
+                      className="text-[var(--color-primary)] hover:underline font-semibold"
+                    >
+                      Generate one
+                    </Link>
+                  </span>
                 )}
               </div>
 
