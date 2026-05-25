@@ -30,7 +30,6 @@ export default function OnboardingPage() {
   const { user, isAuthenticated, updateProfileComplete, setUser } = useAuthStore();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [photoPreview, setPhotoPreview] = useState<string>("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const profileLoadedRef = useRef(false);
@@ -88,7 +87,6 @@ export default function OnboardingPage() {
           minGrantAmount: profile.minGrantAmount ?? 25000,
           deadlinePreference: profile.deadlinePreference ?? "ANY",
         });
-        setPhotoPreview(profile.profilePhotoUrl ?? "");
         if (profile.fullName || profile.email || profile.profileComplete) {
           setUser({
             id: profile.userId,
@@ -171,8 +169,6 @@ export default function OnboardingPage() {
             errors={errors}
             values={values}
             setValue={setValue}
-            photoPreview={photoPreview}
-            setPhotoPreview={setPhotoPreview}
           />
         );
       case 2:

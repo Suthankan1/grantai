@@ -27,6 +27,21 @@ export function StepReview({ values, submitError }: StepReviewProps) {
         <CardContent className="space-y-1 px-6 py-2">
           <SummaryRow label="Full name" value={values.fullName} />
           <SummaryRow label="Email" value={values.email} />
+          <SummaryRow
+            label="Profile photo"
+            value={
+              <div className="flex justify-end">
+                <img
+                  src={values.profilePhotoUrl || "/default-avatar.png"}
+                  alt="Profile"
+                  className="h-8 w-8 rounded-full object-cover ring-2 ring-[rgba(108,71,255,0.2)] bg-[rgba(108,71,255,0.12)]"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/default-avatar.png";
+                  }}
+                />
+              </div>
+            }
+          />
           <SummaryRow label="Country" value={values.country} />
           <SummaryRow label="University" value={values.university} />
           <SummaryRow label="Degree level" value={values.degreeLevel} />
