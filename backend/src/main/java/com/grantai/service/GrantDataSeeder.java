@@ -3,6 +3,7 @@ package com.grantai.service;
 import com.grantai.entity.Grant;
 import com.grantai.repository.GrantRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -13,17 +14,24 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class GrantDataSeeder {
 
     private final GrantRepository grantRepository;
 
     @EventListener(ApplicationReadyEvent.class)
     public void seed() {
-        if (grantRepository.count() > 0) {
+        long count = grantRepository.count();
+        if (count > 0) {
+            log.info("Grants already seeded ({} records). Skipping.", count);
             return;
         }
 
-        grantRepository.saveAll(sampleGrants());
+        try {
+            grantRepository.saveAll(sampleGrants());
+        } catch (Exception ex) {
+            log.warn("Grant seeding failed: {}", ex.getMessage());
+        }
     }
 
     private List<Grant> sampleGrants() {
