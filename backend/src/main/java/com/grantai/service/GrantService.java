@@ -90,7 +90,7 @@ public class GrantService {
         Map<String, Object> filters = buildAiFilters(normalizeText(q), field, country, type, minAmount, maxDeadline);
         final Map<String, AiEngineClient.ScoreResult> aiScores;
 
-        if (profile != null && profile.userId() != null) {
+        if (profile != null && profile.isProfileComplete()) {
             String filtersHash = "";
             try {
                 String serializedFilters = objectMapper.writeValueAsString(filters);
@@ -112,7 +112,7 @@ public class GrantService {
             }
 
             if (cachedScores == null) {
-                Map<String, AiEngineClient.ScoreResult> fetched = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+                Map<String, AiEngineClient.ScoreResult> fetched = aiEngineClient.fetchScores(profile, filters, pageSize);
                 if (fetched != null && !fetched.isEmpty()) {
                     try {
                         String serialized = objectMapper.writeValueAsString(fetched);
@@ -121,16 +121,16 @@ public class GrantService {
                         log.warn("Error writing to Redis cache: {}", ex.getMessage());
                     }
                 }
-                aiScores = fetched;
+                aiScores = fetched != null ? fetched : Map.of();
             } else {
                 aiScores = cachedScores;
             }
         } else {
-            aiScores = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+            aiScores = Map.of();
         }
 
         List<GrantSummaryResponse> items = grants.getContent().stream()
-            .map(grant -> toSummary(grant, profile, aiScores != null ? aiScores.get(grant.getId()) : null))
+            .map(grant -> toSummary(grant, profile, aiScores))
             .collect(Collectors.toList());
 
         return new GrantSearchResponse(
@@ -149,13 +149,18 @@ public class GrantService {
         Grant grant = grantRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found"));
 
-        AiEngineClient.ScoreResult aiScore = aiEngineClient.fetchScores(
-            profile,
-            buildAiFilters(null, grant.getField(), grant.getCountryName(), grant.getGrantType(), grant.getAmount(), grant.getDeadline()),
-            1
-        ).get(grant.getId());
+        final Map<String, AiEngineClient.ScoreResult> aiScores;
+        if (profile != null && profile.isProfileComplete()) {
+            aiScores = aiEngineClient.fetchScores(
+                profile,
+                buildAiFilters(null, grant.getField(), grant.getCountryName(), grant.getGrantType(), grant.getAmount(), grant.getDeadline()),
+                1
+            );
+        } else {
+            aiScores = Map.of();
+        }
 
-        GrantSummaryResponse summary = toSummary(grant, profile, aiScore);
+        GrantSummaryResponse summary = toSummary(grant, profile, aiScores);
         return new GrantDetailResponse(
             summary.id(),
             summary.title(),
@@ -192,11 +197,20 @@ public class GrantService {
         }
     }
 
-    private GrantSummaryResponse toSummary(Grant grant, ProfileResponse profile, AiEngineClient.ScoreResult scoreResult) {
-        int score = scoreResult != null ? clamp(scoreResult.score()) : calculateHeuristicScore(profile, grant);
-        String reasoning = scoreResult != null
-            ? scoreResult.reasoning()
-            : buildHeuristicReasoning(profile, grant, score);
+    private GrantSummaryResponse toSummary(Grant grant, ProfileResponse profile, Map<String, AiEngineClient.ScoreResult> aiScores) {
+        AiEngineClient.ScoreResult scoreResult = aiScores != null ? aiScores.get(grant.getId()) : null;
+        final int score;
+        final String reasoning;
+        if (aiScores == null || aiScores.isEmpty()) {
+            score = 50;
+            reasoning = "Complete your profile for personalised match scoring.";
+        } else if (scoreResult != null) {
+            score = clamp(scoreResult.score());
+            reasoning = scoreResult.reasoning();
+        } else {
+            score = calculateHeuristicScore(profile, grant);
+            reasoning = buildHeuristicReasoning(profile, grant, score);
+        }
 
         return new GrantSummaryResponse(
             grant.getId(),

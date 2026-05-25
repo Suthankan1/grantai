@@ -67,6 +67,14 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
   }, [streamingText]);
 
   React.useEffect(() => {
+    setEditorState("IDLE");
+    setStreamingText("");
+    setEditorHtml("");
+    setStatusMessage(null);
+    setShowTrackerPrompt(false);
+  }, [initialLetterData?.id]);
+
+  React.useEffect(() => {
     if (!initialLetterData) return;
 
     const letter = initialLetterData;

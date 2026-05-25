@@ -138,7 +138,7 @@ export default function LetterEditorPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
+    <div key={params?.id} className="flex min-h-screen bg-[var(--bg-obsidian)] text-white overflow-hidden">
       {/* Sidebar Component */}
       <Sidebar
         mobileOpen={mobileSidebarOpen}
