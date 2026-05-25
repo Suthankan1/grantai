@@ -161,23 +161,32 @@ export function seedDemoData() {
   if (!window.localStorage.getItem("grantai-demo-interviews")) {
     const initialInterviews = [
       {
-        id: "demo-session-1",
+        id: "demo-session-completed-1",
         grantId: "demo-grant-1",
         grantTitle: "NIH Director's Pioneer Award (DP1)",
         grantProvider: "National Institutes of Health",
         questionsJson: JSON.stringify([
-          { question: "How does your bio-computation model handle out-of-distribution mutation sequences?", context: "Technical feasibility", category: "Technical Alignment" },
-          { question: "What is the broader impact of this research on drug discovery speed?", context: "Societal impact", category: "Broader Impact" }
+          { question: "Describe your research background and how it aligns with this grant.", category: "Research Background" },
+          { question: "What specific outcomes do you expect from this grant?", category: "Impact" },
+          { question: "How will you manage the budget and timeline?", category: "Technical" },
+          { question: "What is your long-term vision beyond this grant?", category: "Future Plans" },
+          { question: "Why is your institution the right fit for this project?", category: "Motivation" }
         ]),
         answersJson: JSON.stringify({
-          "0": "We train our geometric model using a comprehensive self-supervised evolutionary structure objective which makes it robust to novel sequences.",
-          "1": "By reducing screening cycles from years to seconds, drug developers can identify promising leads instantly."
+          "0": "My research focuses on deep learning applications in structural bioinformatics and molecular dynamics, matching this grant's focus perfectly.",
+          "1": "I expect to develop new graph neural network models that accelerate molecular docking pipelines by 100x.",
+          "2": "I have drafted a detailed 12-month budget allocating funds to high-performance computing resources.",
+          "3": "My long-term vision is to establish an autonomous AI-driven molecular discovery laboratory.",
+          "4": "Stanford University provides world-class computational resources and a highly collaborative bio-computation department."
         }),
         feedbackJson: JSON.stringify({
-          "0": { score: 9, strengths: ["Clear technical architecture references"], areas_to_improve: ["Mention validation set performance"], suggested_improvements: ["Cite your published validation numbers"], suggested_answer: "We use physical boundary conditions..." },
-          "1": { score: 8.5, strengths: ["Clear value proposition"], areas_to_improve: ["Mention specific therapeutic classes"], suggested_improvements: ["Cite targeting cancer cells"], suggested_answer: "Reducing cycles specifically in oncology leads..." }
+          "0": { score: 8, strengths: ["Excellent academic background"], areas_to_improve: ["None"], suggested_improvements: ["Cite specific publication drafts"], suggested_answer: "I have a strong foundation in..." },
+          "1": { score: 7.5, strengths: ["Highly ambitious goals"], areas_to_improve: ["Define verification protocols"], suggested_improvements: ["Mention baseline models"], suggested_answer: "We aim to improve..." },
+          "2": { score: 8, strengths: ["Clear cost categories"], areas_to_improve: ["HPC scaling details"], suggested_improvements: ["Include small storage buffer"], suggested_answer: "The budget is allocated..." },
+          "3": { score: 7.5, strengths: ["Inspiring vision"], areas_to_improve: ["Focus on immediate aims"], suggested_improvements: ["Connect grant to long-term plans"], suggested_answer: "The long-term vision..." },
+          "4": { score: 8, strengths: ["Great departmental synergy"], areas_to_improve: ["Collaborator details"], suggested_improvements: ["Mention lab resources"], suggested_answer: "Stanford offers outstanding..." }
         }),
-        avgScore: 8.7,
+        avgScore: 78,
         createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
       }
     ];
@@ -580,7 +589,7 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
     } else if (method === "DELETE") {
       const next = trackerList.filter((item: any) => item.id !== entryId);
       window.localStorage.setItem("grantai-demo-tracker", JSON.stringify(next));
-      return { success: true } as unknown as T;
+      return undefined as unknown as T;
     }
   }
 
@@ -640,10 +649,26 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
   if (path === "/api/interview/questions") {
     return {
       questions: [
-        { question: "How does your bio-computation model handle out-of-distribution mutation sequences?", context: "Address generalizability of neural topologies.", category: "Technical Alignment" },
-        { question: "What specific GPU/computing resources are needed for sub-angstrom protein validation?", context: "Explain hardware thresholds & budget scaling.", category: "Budget & Resources" },
-        { question: "How will the local research environment at Stanford accelerate your fellowship aims?", context: "Demonstrate university synergies.", category: "Institutional Alignment" },
-        { question: "What is your fallback research design if high-performance modeling proves insufficient?", context: "Evaluate contingency and technical risk levels.", category: "Risk Management" }
+        {
+          question: "Describe your research background and how it aligns with this grant.",
+          category: "Research Background"
+        },
+        {
+          question: "What specific outcomes do you expect from this grant?",
+          category: "Impact"
+        },
+        {
+          question: "How will you manage the budget and timeline?",
+          category: "Technical"
+        },
+        {
+          question: "What is your long-term vision beyond this grant?",
+          category: "Future Plans"
+        },
+        {
+          question: "Why is your institution the right fit for this project?",
+          category: "Motivation"
+        }
       ]
     } as unknown as T;
   }
@@ -659,11 +684,45 @@ export function handleDemoRequest<T>(path: string, options: RequestOptions = {})
     } as unknown as T;
   }
 
-  if (path.includes('/api/interview/sessions') && options.method === 'GET') { return [] as unknown as T; }
-
-  if (path === "/api/interview/sessions") {
+  if (path === "/api/interview/sessions" || path.includes("/api/interview/sessions")) {
     if (method === "GET") {
-      return JSON.parse(window.localStorage.getItem("grantai-demo-interviews") || "[]") as T;
+      const sessions = JSON.parse(window.localStorage.getItem("grantai-demo-interviews") || "[]");
+      if (sessions.length === 0) {
+        const initialInterviews = [
+          {
+            id: "demo-session-completed-1",
+            grantId: "demo-grant-1",
+            grantTitle: "NIH Director's Pioneer Award (DP1)",
+            grantProvider: "National Institutes of Health",
+            questionsJson: JSON.stringify([
+              { question: "Describe your research background and how it aligns with this grant.", category: "Research Background" },
+              { question: "What specific outcomes do you expect from this grant?", category: "Impact" },
+              { question: "How will you manage the budget and timeline?", category: "Technical" },
+              { question: "What is your long-term vision beyond this grant?", category: "Future Plans" },
+              { question: "Why is your institution the right fit for this project?", category: "Motivation" }
+            ]),
+            answersJson: JSON.stringify({
+              "0": "My research focuses on deep learning applications in structural bioinformatics and molecular dynamics, matching this grant's focus perfectly.",
+              "1": "I expect to develop new graph neural network models that accelerate molecular docking pipelines by 100x.",
+              "2": "I have drafted a detailed 12-month budget allocating funds to high-performance computing resources.",
+              "3": "My long-term vision is to establish an autonomous AI-driven molecular discovery laboratory.",
+              "4": "Stanford University provides world-class computational resources and a highly collaborative bio-computation department."
+            }),
+            feedbackJson: JSON.stringify({
+              "0": { score: 8, strengths: ["Excellent academic background"], areas_to_improve: ["None"], suggested_improvements: ["Cite specific publication drafts"], suggested_answer: "I have a strong foundation in..." },
+              "1": { score: 7.5, strengths: ["Highly ambitious goals"], areas_to_improve: ["Define verification protocols"], suggested_improvements: ["Mention baseline models"], suggested_answer: "We aim to improve..." },
+              "2": { score: 8, strengths: ["Clear cost categories"], areas_to_improve: ["HPC scaling details"], suggested_improvements: ["Include small storage buffer"], suggested_answer: "The budget is allocated..." },
+              "3": { score: 7.5, strengths: ["Inspiring vision"], areas_to_improve: ["Focus on immediate aims"], suggested_improvements: ["Connect grant to long-term plans"], suggested_answer: "The long-term vision..." },
+              "4": { score: 8, strengths: ["Great departmental synergy"], areas_to_improve: ["Collaborator details"], suggested_improvements: ["Mention lab resources"], suggested_answer: "Stanford offers outstanding..." }
+            }),
+            avgScore: 78,
+            createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
+          }
+        ];
+        window.localStorage.setItem("grantai-demo-interviews", JSON.stringify(initialInterviews));
+        return initialInterviews as unknown as T;
+      }
+      return sessions as T;
     } else if (method === "POST") {
       const body = JSON.parse(options.body as string || "{}");
       const sessions = JSON.parse(window.localStorage.getItem("grantai-demo-interviews") || "[]");
