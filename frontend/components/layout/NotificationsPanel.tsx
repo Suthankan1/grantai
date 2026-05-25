@@ -24,7 +24,7 @@ function getReadIds(): Set<string> {
 }
 
 function saveReadIds(ids: Set<string>) {
-  localStorage.setItem(LS_KEY, JSON.stringify([...ids]));
+  localStorage.setItem(LS_KEY, JSON.stringify(Array.from(ids)));
 }
 
 function urgencyColor(daysLeft: number) {
