@@ -44,17 +44,20 @@ export default function LetterEditorPage() {
   const isGrantSource = source === "grant";
   const isLetterSource = source === "letter";
 
+  const isDemoLetter = routeId?.startsWith("demo-letter-");
+  const isDemoGrant = routeId?.startsWith("demo-grant-");
+
   const grantQuery = useQuery({
     queryKey: ["grant", routeId],
     queryFn: () => getGrantById(routeId),
-    enabled: !!routeId && !isLetterSource,
+    enabled: !!routeId && !isLetterSource && !isDemoLetter,
     retry: false,
   });
 
   const letterQuery = useQuery({
     queryKey: ["letter", routeId],
     queryFn: () => getLetterById(routeId),
-    enabled: !!routeId && !isGrantSource,
+    enabled: !!routeId && (!isGrantSource || (!isDemoGrant && routeId !== grantQuery.data?.id)),
     retry: false,
   });
 

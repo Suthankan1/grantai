@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ExternalLink, FileText, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronLeft, ExternalLink, FileText, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getGrantById, createTracker, listTracker } from "@/lib/api";
+import { getGrantById, createTracker, listTracker, generateLetter } from "@/lib/api";
 
 function splitReasoning(reasoning: string | null | undefined) {
   if (!reasoning) return [];
@@ -86,6 +86,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export default function GrantDetailPage() {
   const params = useParams<{ id: string }>();
   const grantId = params?.id;
+  const router = useRouter();
 
   const grantQuery = useQuery({
     queryKey: ["grant", grantId],
@@ -94,6 +95,7 @@ export default function GrantDetailPage() {
   });
 
   const [saved, setSaved] = React.useState(false);
+  const [isGenerating, setIsGenerating] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -112,6 +114,21 @@ export default function GrantDetailPage() {
 
   const grant = grantQuery.data;
   const insights = splitReasoning(grant?.matchReasoning);
+
+  const handleGenerateLetter = async () => {
+    if (!grant?.id) return;
+    setIsGenerating(true);
+    setStatusMessage(null);
+    try {
+      const letterId = await generateLetter({ grantId: grant.id });
+      router.push(`/letters/${letterId}?source=grant`);
+    } catch (err) {
+      console.error("Failed to generate cover letter:", err);
+      const msg = err instanceof Error ? err.message : "Failed to generate cover letter.";
+      setStatusMessage(msg);
+      setIsGenerating(false);
+    }
+  };
 
   if (grantQuery.isLoading) {
     return (
@@ -215,11 +232,24 @@ export default function GrantDetailPage() {
                 </div>
 
                 <div className="grid gap-3">
-                  <Button asChild variant="glow" size="lg" className="w-full">
-                    <Link href={`/letters/${grant.id}?source=grant`}>
-                      <Sparkles className="h-4 w-4" />
-                      Generate Cover Letter
-                    </Link>
+                  <Button
+                    variant="glow"
+                    size="lg"
+                    className="w-full"
+                    disabled={isGenerating}
+                    onClick={handleGenerateLetter}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Generate Cover Letter
+                      </>
+                    )}
                   </Button>
 
                   <Button asChild variant="outline" size="lg" className="w-full border-primary/40 hover:border-primary/80">

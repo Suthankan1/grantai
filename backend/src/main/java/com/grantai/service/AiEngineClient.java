@@ -27,6 +27,7 @@ public class AiEngineClient {
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final RateLimiterService rateLimiterService;
 
     @Value("${ai-engine.url:http://localhost:8000}")
     private String aiEngineUrl;
@@ -40,8 +41,9 @@ public class AiEngineClient {
     @Value("${ai-engine.interview-timeout-seconds:25}")
     private long interviewTimeoutSeconds;
 
-    public AiEngineClient(ObjectMapper objectMapper) {
+    public AiEngineClient(ObjectMapper objectMapper, RateLimiterService rateLimiterService) {
         this.objectMapper = objectMapper;
+        this.rateLimiterService = rateLimiterService;
         this.httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(5))
@@ -50,6 +52,11 @@ public class AiEngineClient {
 
     public Map<String, ScoreResult> fetchScores(ProfileResponse profile, Map<String, Object> filters, int nResults) {
         if (profile == null) {
+            return Map.of();
+        }
+
+        if (!rateLimiterService.isAllowed(profile.userId())) {
+            log.warn("Rate limit exceeded for user: {}. Throttling AI score fetch.", profile.userId());
             return Map.of();
         }
 

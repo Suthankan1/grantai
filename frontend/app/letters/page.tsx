@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   FileText, 
   Search, 
@@ -11,7 +11,8 @@ import {
   Calendar, 
   Coins, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
@@ -19,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listLetters, type CoverLetterApi } from "@/lib/api";
+import { listLetters, deleteLetter, type CoverLetterApi } from "@/lib/api";
 import { formatAmount } from "@/lib/format-helpers";
 
 export default function LettersListPage() {
@@ -27,6 +28,21 @@ export default function LettersListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTone, setSelectedTone] = useState<string>("All");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "alphabetical">("newest");
+  const [letterToDelete, setLetterToDelete] = useState<CoverLetterApi | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // Mutation to delete a cover letter
+  const deleteMutation = useMutation({
+    mutationFn: deleteLetter,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["letters-list"] });
+      setLetterToDelete(null);
+    },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : "Failed to delete cover letter.");
+    }
+  });
 
   // Fetch letters via React Query
   const { data: letters = [], isLoading, isError, error } = useQuery<CoverLetterApi[]>({
@@ -257,12 +273,9 @@ export default function LettersListPage() {
                   <CardContent className="flex-1 px-5 py-4 flex flex-col gap-3">
                     {/* Snippet of content */}
                     {letter.content ? (
-                      <p 
-                        className="text-xs text-[var(--color-muted)] line-clamp-3 leading-relaxed"
-                        dangerouslySetInnerHTML={{
-                          __html: letter.content.replace(/<[^>]*>/g, "").slice(0, 180) + "..."
-                        }}
-                      />
+                      <p className="text-xs text-[var(--color-muted)] line-clamp-3 leading-relaxed">
+                        {letter.content.replace(/<[^>]*>/g, "").slice(0, 180)}...
+                      </p>
                     ) : (
                       <p className="text-xs text-[var(--color-muted)] italic">No content generated yet.</p>
                     )}
@@ -283,11 +296,24 @@ export default function LettersListPage() {
                     <span className="text-[10px] text-[var(--color-subtle)]">
                       {letter.length || "Standard 500w"}
                     </span>
-                    <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-purple-400 hover:text-white hover:bg-[rgba(108,71,255,0.1)] rounded-lg">
-                      <Link href={`/letters/${letter.id}?source=letter`}>
-                        Edit Letter <ArrowRight className="ml-1 h-3 w-3" />
-                      </Link>
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-[var(--color-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg shrink-0"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setLetterToDelete(letter);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-purple-400 hover:text-white hover:bg-[rgba(108,71,255,0.1)] rounded-lg">
+                        <Link href={`/letters/${letter.id}?source=letter`}>
+                          Edit Letter <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -327,6 +353,48 @@ export default function LettersListPage() {
           )}
         </main>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {letterToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            onClick={() => {
+              if (!deleteMutation.isPending) {
+                setLetterToDelete(null);
+              }
+            }} 
+            className="fixed inset-0 bg-black/70 backdrop-blur-md" 
+          />
+
+          {/* Modal Dialog */}
+          <div className="relative z-10 w-full max-w-md rounded-3xl border border-[var(--border-default)] bg-[rgba(10,10,18,0.96)] p-6 shadow-2xl backdrop-blur-xl md:p-8">
+            <h3 className="text-lg font-bold text-white">Delete Cover Letter?</h3>
+            <p className="text-xs text-[var(--color-muted)] mt-2 leading-relaxed">
+              Are you sure you want to delete the cover letter for <strong className="text-purple-300">{letterToDelete.grantTitle || "this grant"}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center gap-3 mt-6">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl text-xs h-9"
+                onClick={() => setLetterToDelete(null)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 rounded-xl text-xs h-9"
+                onClick={() => deleteMutation.mutate(letterToDelete.id)}
+                loading={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

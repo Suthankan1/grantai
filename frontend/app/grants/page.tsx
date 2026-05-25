@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Filter, Search, SlidersHorizontal, X, Menu, Check, ChevronDown, Globe } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { List } from "react-window";
+import { FixedSizeList as List } from "react-window";
 import { GrantCard } from "@/components/grants/GrantCard";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -716,9 +716,10 @@ export default function GrantsPage() {
                   {grants.length > 50 ? (
                     <div className="relative">
                       <List
-                        rowCount={chunkedGrants.length}
-                        rowHeight={460}
-                        style={{ height: 750, width: "100%" }}
+                        itemCount={chunkedGrants.length}
+                        itemSize={460}
+                        height={750}
+                        width="100%"
                         className="no-scrollbar"
                       >
                         {({ index, style }) => {

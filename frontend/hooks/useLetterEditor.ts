@@ -168,7 +168,14 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
           body: JSON.stringify(payload),
         });
 
-        if (!response.ok || !response.body) {
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          setStatusMessage(err.message || err.error || "Generation failed. Please try again.");
+          setEditorState("IDLE");
+          return;
+        }
+
+        if (!response.body) {
           throw new Error("Unable to start letter generation.");
         }
 

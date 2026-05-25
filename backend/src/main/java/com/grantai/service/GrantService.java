@@ -8,16 +8,22 @@ import com.grantai.entity.Grant;
 import com.grantai.repository.GrantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -37,6 +43,8 @@ public class GrantService {
     private final GrantRepository grantRepository;
     private final ProfileService profileService;
     private final AiEngineClient aiEngineClient;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public GrantSearchResponse search(
@@ -80,10 +88,49 @@ public class GrantService {
         }
 
         Map<String, Object> filters = buildAiFilters(normalizeText(q), field, country, type, minAmount, maxDeadline);
-        Map<String, AiEngineClient.ScoreResult> aiScores = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+        final Map<String, AiEngineClient.ScoreResult> aiScores;
+
+        if (profile != null && profile.userId() != null) {
+            String filtersHash = "";
+            try {
+                String serializedFilters = objectMapper.writeValueAsString(filters);
+                filtersHash = DigestUtils.md5DigestAsHex(serializedFilters.getBytes(StandardCharsets.UTF_8));
+            } catch (Exception ex) {
+                log.warn("Failed to serialize filters for hashing: {}", ex.getMessage());
+                filtersHash = String.valueOf(filters.hashCode());
+            }
+
+            String redisKey = String.format("ai:scores:%s:%s", profile.userId(), filtersHash);
+            Map<String, AiEngineClient.ScoreResult> cachedScores = null;
+            try {
+                String cached = redisTemplate.opsForValue().get(redisKey);
+                if (cached != null) {
+                    cachedScores = objectMapper.readValue(cached, new TypeReference<Map<String, AiEngineClient.ScoreResult>>() {});
+                }
+            } catch (Exception ex) {
+                log.warn("Error reading from Redis cache: {}", ex.getMessage());
+            }
+
+            if (cachedScores == null) {
+                Map<String, AiEngineClient.ScoreResult> fetched = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+                if (fetched != null && !fetched.isEmpty()) {
+                    try {
+                        String serialized = objectMapper.writeValueAsString(fetched);
+                        redisTemplate.opsForValue().set(redisKey, serialized, Duration.ofMinutes(5));
+                    } catch (Exception ex) {
+                        log.warn("Error writing to Redis cache: {}", ex.getMessage());
+                    }
+                }
+                aiScores = fetched;
+            } else {
+                aiScores = cachedScores;
+            }
+        } else {
+            aiScores = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+        }
 
         List<GrantSummaryResponse> items = grants.getContent().stream()
-            .map(grant -> toSummary(grant, profile, aiScores.get(grant.getId())))
+            .map(grant -> toSummary(grant, profile, aiScores != null ? aiScores.get(grant.getId()) : null))
             .collect(Collectors.toList());
 
         return new GrantSearchResponse(

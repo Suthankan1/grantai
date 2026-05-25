@@ -1,4 +1,4 @@
-import { apiRequest } from "./api-client";
+import { apiRequest, authFetch } from "./api-client";
 import type {
   AuthApiResponse,
   ProfileApiResponse,
@@ -13,6 +13,7 @@ import type {
   InterviewQuestionsResponseApi,
   InterviewFeedbackResponseApi,
   InterviewSessionResponseApi,
+  CoverLetterGeneratePayload,
 } from "./types";
 
 // Re-export all sub-modules for backwards compatibility
@@ -121,6 +122,73 @@ export async function updateLetter(id: string, payload: { content?: string; addT
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export async function deleteLetter(id: string) {
+  return apiRequest<void>(`/api/letters/${id}`, { method: "DELETE" });
+}
+
+export async function generateLetter(payload: CoverLetterGeneratePayload): Promise<string> {
+  const response = await authFetch("/api/letters/generate", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "text/event-stream",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error("Unable to start letter generation.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let eventName = "message";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line.startsWith("event:")) {
+          eventName = line.slice(6).trim();
+          continue;
+        }
+
+        if (line.startsWith("data:")) {
+          const raw = line.slice(5).trim();
+          if (!raw) continue;
+
+          if (eventName === "meta") {
+            const meta = JSON.parse(raw) as { letterId?: string };
+            if (meta.letterId) {
+              await reader.cancel();
+              return meta.letterId;
+            }
+          } else if (eventName === "error") {
+            const errorData = JSON.parse(raw) as { message?: string };
+            throw new Error(errorData.message ?? "Generation failed.");
+          }
+        }
+
+        if (!line.trim()) {
+          eventName = "message";
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  throw new Error("No letter ID returned from meta event.");
 }
 
 // ── Application Tracker ───────────────────────────────────────────────────────

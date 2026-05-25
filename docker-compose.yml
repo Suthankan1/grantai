@@ -45,8 +45,12 @@ services:
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-no-reply@grantai.app}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - grantai-network

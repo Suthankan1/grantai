@@ -14,7 +14,8 @@ import {
   Zap,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
@@ -28,6 +29,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Grant Finder", href: "/grants", icon: Search },
+  { label: "World Map", href: "/world", icon: Globe },
   { label: "Tracker", href: "/tracker", icon: Kanban },
   { href: "/letters", label: "My Letters", icon: FileText },
   { label: "Interview Prep", href: "/interview", icon: Mic },
