@@ -99,9 +99,9 @@ export function useLetterEditor({ grant, initialLetterData }: UseLetterEditorPro
 
     const interval = window.setInterval(() => {
       if (queueRef.current.length > 0) {
-        const nextChar = queueRef.current[0];
-        queueRef.current = queueRef.current.slice(1);
-        setStreamingText((prev) => prev + nextChar);
+        const batch = queueRef.current.slice(0, 8);
+        queueRef.current = queueRef.current.slice(8);
+        setStreamingText((prev) => prev + batch);
         return;
       }
 

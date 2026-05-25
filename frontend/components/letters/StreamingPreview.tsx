@@ -13,6 +13,20 @@ interface StreamingPreviewProps {
 }
 
 export function StreamingPreview({ streamTokens }: StreamingPreviewProps) {
+  // Group tokens into chunks of 15 tokens to prevent DOM node explosion and expensive Framer Motion rendering
+  const tokenGroups = React.useMemo(() => {
+    const groups: { id: string; text: string }[] = [];
+    const chunkSize = 15;
+    for (let i = 0; i < streamTokens.length; i += chunkSize) {
+      const chunk = streamTokens.slice(i, i + chunkSize);
+      groups.push({
+        id: chunk[0]?.id || `group-${i}`,
+        text: chunk.map(item => item.token).join(""),
+      });
+    }
+    return groups;
+  }, [streamTokens]);
+
   return (
     <div className="relative h-full overflow-y-auto rounded-2xl border border-[var(--border-default)] bg-[rgba(12,12,22,0.75)] p-5 leading-8">
       <AnimatePresence>
@@ -20,21 +34,17 @@ export function StreamingPreview({ streamTokens }: StreamingPreviewProps) {
           key="stream"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
           className="whitespace-pre-wrap text-[15px] text-[var(--color-text)]"
         >
-          {streamTokens.map((item, index) => (
+          {tokenGroups.map((group) => (
             <motion.span
-              key={item.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.22,
-                ease: "easeOut",
-                delay: Math.min(index * 0.002, 0.25),
-              }}
+              key={group.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
             >
-              {item.token}
+              {group.text}
             </motion.span>
           ))}
           <motion.span
