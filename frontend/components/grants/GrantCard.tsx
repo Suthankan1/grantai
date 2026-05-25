@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CalendarDays, ExternalLink, Sparkles } from "lucide-react";
+import { CalendarDays, Check, ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { MAX_COMPARE_GRANTS, useCompareStore } from "@/lib/compare-store";
 import { cn } from "@/lib/utils";
 import type { GrantSummaryApi } from "@/lib/api";
 
@@ -90,6 +91,10 @@ export const GrantCard = React.memo(function GrantCard({ grant }: { grant: Grant
   const style = TYPE_STYLES[grant.grantType] ?? TYPE_STYLES["Scholarship"];
   const remainingDays = daysLeft(grant.deadline);
   const urgent = remainingDays < 30;
+  const selectedGrantIds = useCompareStore((state) => state.selectedGrantIds);
+  const toggleGrant = useCompareStore((state) => state.toggleGrant);
+  const isSelected = selectedGrantIds.includes(grant.id);
+  const canSelectMore = isSelected || selectedGrantIds.length < MAX_COMPARE_GRANTS;
 
   return (
     <motion.article
@@ -124,7 +129,33 @@ export const GrantCard = React.memo(function GrantCard({ grant }: { grant: Grant
               <p className="text-sm text-[var(--color-muted)]">{grant.provider}</p>
             </div>
 
-            <ScoreRing score={grant.matchScore} />
+            <div className="flex flex-col items-end gap-3">
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  isSelected
+                    ? "border-[rgba(0,212,170,0.45)] bg-[rgba(0,212,170,0.12)] text-white"
+                    : canSelectMore
+                    ? "border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] text-[var(--color-muted)] hover:border-[rgba(0,212,170,0.4)] hover:text-white"
+                    : "cursor-not-allowed border-[var(--border-default)] bg-[rgba(240,240,255,0.03)] text-[var(--color-subtle)]"
+                )}
+                title={canSelectMore ? "Add to comparison" : `Select up to ${MAX_COMPARE_GRANTS} grants to compare`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  disabled={!canSelectMore}
+                  onChange={() => toggleGrant(grant.id)}
+                  className="h-4 w-4 rounded border-[var(--border-default)] text-[#00D4AA] focus:ring-[#00D4AA]"
+                />
+                <span className="inline-flex items-center gap-1.5">
+                  {isSelected ? <Check className="h-3.5 w-3.5 text-[#00D4AA]" /> : null}
+                  Compare
+                </span>
+              </label>
+
+              <ScoreRing score={grant.matchScore} />
+            </div>
           </div>
 
           <p className="line-clamp-3 text-sm leading-6 text-[var(--color-subtle)]">{grant.description}</p>

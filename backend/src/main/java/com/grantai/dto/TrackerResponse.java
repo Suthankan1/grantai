@@ -18,5 +18,6 @@ public record TrackerResponse(
     String coverLetterStatus, // "READY", "GENERATING", "SAVED", "FAILED", or "None"
     String coverLetterId,     // ID of the cover letter if one exists
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    boolean bookmarked
 ) {}

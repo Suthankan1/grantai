@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +18,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2, Menu } from "lucide-react";
+import { Plus, Loader2, Menu, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { listTracker, updateTracker, deleteTracker, createTracker, TrackerEntryApi } from "@/lib/api";
 import TrackerCard from "@/components/tracker/TrackerCard";
@@ -25,6 +26,7 @@ import DetailDrawer from "@/components/tracker/DetailDrawer";
 import AddApplicationModal from "@/components/tracker/AddApplicationModal";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const COLUMNS = [
   { id: "Draft", label: "Draft", bg: "bg-[rgba(240,240,255,0.015)]" },
@@ -35,8 +37,6 @@ const COLUMNS = [
 ];
 
 export default function TrackerPage() {
-  const [cards, setCards] = useState<TrackerEntryApi[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeDragCard, setActiveDragCard] = useState<TrackerEntryApi | null>(null);
   const [selectedCard, setSelectedCard] = useState<TrackerEntryApi | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -58,21 +58,22 @@ export default function TrackerPage() {
     })
   );
 
-  // Fetch all tracked applications
-  const fetchTrackerData = async () => {
-    try {
-      const response = await listTracker();
-      setCards(response);
-    } catch (err) {
-      console.error("Failed to load tracker entries:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch all tracked applications via React Query (auto-retry, stale-while-revalidate)
+  const {
+    data: cards = [],
+    isLoading: loading,
+    isError,
+    refetch: fetchTrackerData,
+  } = useQuery<TrackerEntryApi[]>({
+    queryKey: ["tracker"],
+    queryFn: listTracker,
+    retry: 2,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    fetchTrackerData();
-  }, []);
+  // Local override for optimistic updates (cards start from query data)
+  const [localCards, setLocalCards] = useState<TrackerEntryApi[] | null>(null);
+  const activeCards = localCards ?? cards;
 
   // Partition cards by column status
   const cardsByColumn = useMemo(() => {
@@ -83,7 +84,7 @@ export default function TrackerPage() {
       Won: [],
       Rejected: [],
     };
-    cards.forEach((card) => {
+    activeCards.forEach((card) => {
       if (map[card.status] !== undefined) {
         map[card.status].push(card);
       } else {
@@ -99,7 +100,14 @@ export default function TrackerPage() {
       }
     });
     return map;
-  }, [cards]);
+  }, [activeCards]);
+
+  // Sync localCards when fresh server data arrives
+  React.useEffect(() => {
+    if (cards.length > 0 || !loading) {
+      setLocalCards(null); // reset optimistic override; let query data take over
+    }
+  }, [cards, loading]);
 
   // Aggregate stats: Won column total amount in USD/USD equivalent
   const wonAmount = useMemo(() => {
@@ -126,7 +134,7 @@ export default function TrackerPage() {
   // Handle Drag Start
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const card = cards.find((c) => c.id === active.id);
+    const card = activeCards.find((c) => c.id === active.id);
     if (card) {
       setActiveDragCard(card);
     }
@@ -142,7 +150,7 @@ export default function TrackerPage() {
     const cardId = active.id as string;
     const overId = over.id as string;
 
-    const draggedCard = cards.find((c) => c.id === cardId);
+    const draggedCard = activeCards.find((c) => c.id === cardId);
     if (!draggedCard) return;
 
     // Determine the target column status
@@ -153,7 +161,7 @@ export default function TrackerPage() {
       targetStatus = overId;
     } else {
       // If over another card, find that card's status
-      const overCard = cards.find((c) => c.id === overId);
+      const overCard = activeCards.find((c) => c.id === overId);
       if (overCard) {
         targetStatus = overCard.status;
       }
@@ -162,9 +170,9 @@ export default function TrackerPage() {
     if (draggedCard.status === targetStatus) return;
 
     // 1. Optimistic UI update
-    const previousCards = [...cards];
-    setCards((prev) =>
-      prev.map((c) => {
+    const previousCards = [...activeCards];
+    setLocalCards((prev) =>
+      (prev ?? activeCards).map((c) => {
         if (c.id === cardId) {
           const appliedDate =
             targetStatus === "Applied" && !c.appliedDate
@@ -188,10 +196,12 @@ export default function TrackerPage() {
         status: targetStatus,
         appliedDate: appliedDate || undefined,
       });
+      // Invalidate so React Query re-fetches fresh data
+      fetchTrackerData();
     } catch (err) {
       console.error("Failed to update status on drop. Rolling back...", err);
       // Rollback to previous state
-      setCards(previousCards);
+      setLocalCards(previousCards);
       alert("Failed to synchronize change with the server. Action rolled back.");
     }
   };
@@ -205,8 +215,8 @@ export default function TrackerPage() {
   // Detail Drawer Update callback
   const handleDetailUpdate = async (id: string, payload: { status?: string; notes?: string; appliedDate?: string }) => {
     // 1. Optimistic update
-    setCards((prev) =>
-      prev.map((c) => {
+    setLocalCards((prev) =>
+      (prev ?? activeCards).map((c) => {
         if (c.id === id) {
           return { ...c, ...payload };
         }
@@ -218,7 +228,7 @@ export default function TrackerPage() {
     try {
       const updated = await updateTracker(id, payload);
       // Synchronize exact response
-      setCards((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      setLocalCards((prev) => (prev ?? activeCards).map((c) => (c.id === id ? updated : c)));
       if (selectedCard?.id === id) {
         setSelectedCard(updated);
       }
@@ -233,11 +243,12 @@ export default function TrackerPage() {
   // Detail Drawer Delete callback
   const handleDetailDelete = async (id: string) => {
     // 1. Optimistic delete
-    setCards((prev) => prev.filter((c) => c.id !== id));
+    setLocalCards((prev) => (prev ?? activeCards).filter((c) => c.id !== id));
     
     // 2. Network delete
     try {
       await deleteTracker(id);
+      fetchTrackerData();
     } catch (err) {
       console.error("Failed to delete entry:", err);
       fetchTrackerData();
@@ -248,7 +259,8 @@ export default function TrackerPage() {
   const handleAddCreate = async (payload: { grantId: string; status?: string; notes?: string }) => {
     try {
       const created = await createTracker(payload);
-      setCards((prev) => [created, ...prev]);
+      setLocalCards((prev) => [created, ...(prev ?? activeCards)]);
+      fetchTrackerData();
     } catch (err) {
       console.error("Failed to create tracker entry:", err);
       throw err;
@@ -317,7 +329,24 @@ export default function TrackerPage() {
         {/* Content Area */}
         <section className="relative min-h-[calc(100svh-4rem)] overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
           <div className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-            
+
+            {/* Error state card */}
+            {isError && (
+              <Card className="p-6 text-center border-red-500/20 bg-red-500/5">
+                <AlertCircle className="mx-auto h-8 w-8 text-red-400" />
+                <p className="mt-2 text-sm text-red-400">
+                  Failed to load applications. Please refresh.
+                </p>
+                <Button
+                  onClick={() => fetchTrackerData()}
+                  className="mt-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                  variant="ghost"
+                >
+                  Retry
+                </Button>
+              </Card>
+            )}
+
             {/* Page Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[rgba(240,240,255,0.04)] pb-6">
               <div>

@@ -12,7 +12,9 @@ import com.grantai.dto.RegisterRequest;
 import com.grantai.dto.UserDto;
 import com.grantai.entity.RefreshToken;
 import com.grantai.entity.User;
+import com.grantai.entity.UserProfile;
 import com.grantai.repository.RefreshTokenRepository;
+import com.grantai.repository.UserProfileRepository;
 import com.grantai.repository.UserRepository;
 import com.grantai.security.JwtUtil;
 import jakarta.servlet.http.Cookie;
@@ -46,6 +48,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
@@ -285,12 +288,16 @@ public class AuthService {
     }
 
     private UserDto toDto(User user) {
+        String profilePhotoUrl = userProfileRepository.findByUserId(user.getId())
+            .map(UserProfile::getProfilePhotoUrl)
+            .orElse(null);
         return new UserDto(
             user.getId(),
             user.getEmail(),
             user.getFullName(),
             user.getRole().name(),
-            user.isProfileComplete()
+            user.isProfileComplete(),
+            profilePhotoUrl
         );
     }
 }

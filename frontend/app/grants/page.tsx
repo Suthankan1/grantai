@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Filter, Search, SlidersHorizontal, X, Menu } from "lucide-react";
+import { Filter, Search, SlidersHorizontal, X, Menu, Check, ChevronDown, Globe } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { List } from "react-window";
+import { FixedSizeList as List } from "react-window";
 import { GrantCard } from "@/components/grants/GrantCard";
+import { CompareBar } from "@/components/grants/CompareBar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -307,6 +308,110 @@ function FilterChip({
   );
 }
 
+interface CountrySearchSelectProps {
+  selectedCodes: string[];
+  onChange: (codes: string[]) => void;
+}
+
+function CountrySearchSelect({ selectedCodes, onChange }: CountrySearchSelectProps) {
+  const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCountries = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return COUNTRY_OPTIONS;
+    return COUNTRY_OPTIONS.filter((country) =>
+      country.name.toLowerCase().includes(query) ||
+      country.code.toLowerCase().includes(query)
+    );
+  }, [searchQuery]);
+
+  const handleToggle = (code: string) => {
+    if (selectedCodes.includes(code)) {
+      onChange(selectedCodes.filter((c) => c !== code));
+    } else {
+      onChange([...selectedCodes, code]);
+    }
+  };
+
+  return (
+    <div className="relative space-y-2 w-full" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-xl border border-[var(--border-default)] bg-[rgba(240,240,255,0.04)] px-3 py-2.5 text-left text-sm text-[var(--color-text)] hover:border-[var(--border-strong)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50"
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Globe className="h-4.5 w-4.5 text-[var(--color-muted)] shrink-0" />
+          <span className="truncate">
+            {selectedCodes.length > 0
+              ? `${selectedCodes.length} selected`
+              : "Select countries"}
+          </span>
+        </span>
+        <ChevronDown className={cn("h-4 w-4 text-[var(--color-muted)] transition-transform duration-200 shrink-0", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full rounded-2xl border border-[var(--border-strong)] bg-[#0c0c14] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+          <div className="relative mb-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)]" />
+            <Input
+              autoFocus
+              variant="filled"
+              placeholder="Search countries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 pl-9 pr-3 text-xs bg-[rgba(240,240,255,0.03)] border-[rgba(240,240,255,0.05)] text-white placeholder-[var(--color-muted)]"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+            {filteredCountries.length > 0 ? (
+              filteredCountries.map((country) => {
+                const isSelected = selectedCodes.includes(country.code);
+                return (
+                  <button
+                    key={country.code}
+                    type="button"
+                    onClick={() => handleToggle(country.code)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
+                      isSelected
+                        ? "bg-[rgba(108,71,255,0.15)] text-white font-medium"
+                        : "text-[var(--color-muted)] hover:bg-[rgba(240,240,255,0.04)] hover:text-[var(--color-text)]"
+                    )}
+                  >
+                    <span className="truncate">{country.name}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] opacity-50 uppercase">{country.code}</span>
+                      {isSelected && <Check className="h-3.5 w-3.5 text-[#00D4AA]" />}
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-3 py-2 text-center text-xs text-[var(--color-muted)]">
+                No matching countries
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GrantsPage() {
   const [query, setQuery] = React.useState("");
   const [fieldFilters, setFieldFilters] = React.useState<string[]>([]);
@@ -392,17 +497,30 @@ export default function GrantsPage() {
           <SlidersHorizontal className="h-4 w-4 text-[#9B73FF]" />
           Country
         </div>
-        <div className="flex flex-wrap gap-2">
-          {COUNTRY_OPTIONS.map((country) => {
-            const value = country.code;
-            const active = countryFilters.includes(value);
-            return (
-              <FilterChip key={country.code} active={active} onClick={() => setCountryFilters((current) => toggleValue(current, value))}>
-                {country.name}
-              </FilterChip>
-            );
-          })}
-        </div>
+        <CountrySearchSelect
+          selectedCodes={countryFilters}
+          onChange={setCountryFilters}
+        />
+        {countryFilters.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {countryFilters.map((code) => {
+              const country = COUNTRY_OPTIONS.find((c) => c.code === code);
+              if (!country) return null;
+              return (
+                <Badge
+                  key={code}
+                  variant="primary"
+                  size="sm"
+                  className="flex items-center gap-1 cursor-pointer pr-1.5 py-0.5"
+                  onClick={() => setCountryFilters((current) => current.filter((c) => c !== code))}
+                >
+                  <span>{country.name}</span>
+                  <X className="h-3 w-3 hover:text-white" />
+                </Badge>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -599,9 +717,10 @@ export default function GrantsPage() {
                   {grants.length > 50 ? (
                     <div className="relative">
                       <List
-                        rowCount={chunkedGrants.length}
-                        rowHeight={460}
-                        style={{ height: 750, width: "100%" }}
+                        itemCount={chunkedGrants.length}
+                        itemSize={460}
+                        height={750}
+                        width="100%"
                         className="no-scrollbar"
                       >
                         {({ index, style }) => {
@@ -643,6 +762,7 @@ export default function GrantsPage() {
               )}
             </main>
           </div>
+          <CompareBar />
         </section>
       </div>
     </div>

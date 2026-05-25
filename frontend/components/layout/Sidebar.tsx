@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
+import { NotificationsPanel } from "./NotificationsPanel";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -14,11 +16,12 @@ import {
   Zap,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
-import { authLogout } from "@/lib/api";
+import { authLogout, API_BASE_URL } from "@/lib/api";
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -28,6 +31,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Grant Finder", href: "/grants", icon: Search },
+  { label: "World Map", href: "/world", icon: Globe },
   { label: "Tracker", href: "/tracker", icon: Kanban },
   { href: "/letters", label: "My Letters", icon: FileText },
   { label: "Interview Prep", href: "/interview", icon: Mic },
@@ -151,10 +155,25 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         "p-4 border-t border-[rgba(240,240,255,0.05)] mt-auto shrink-0 flex flex-col gap-3",
         isCollapsed && "items-center"
       )}>
+        {/* Notification Bell */}
+        <div className={cn("flex", isCollapsed ? "justify-center" : "justify-start")}>
+          <NotificationsPanel isCollapsed={isCollapsed} />
+        </div>
         {/* User Card */}
         <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <div className="relative h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center font-semibold text-white shadow-glow-sm border border-[rgba(240,240,255,0.08)]">
-            {getInitials(user?.fullName ?? null)}
+          <div className="relative h-10 w-10 shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-[#6C47FF] to-[#00D4AA] flex items-center justify-center font-semibold text-white shadow-glow-sm border border-[rgba(240,240,255,0.08)]">
+            <span className="absolute inset-0 flex items-center justify-center">
+              {getInitials(user?.fullName ?? null)}
+            </span>
+            {user?.profilePhotoUrl && (
+              <Image
+                src={user.profilePhotoUrl.startsWith("http") || user.profilePhotoUrl.startsWith("data:") ? user.profilePhotoUrl : `${API_BASE_URL}${user.profilePhotoUrl}`}
+                alt="Avatar"
+                fill
+                unoptimized
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
           </div>
           
           {!isCollapsed && (

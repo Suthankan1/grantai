@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -21,14 +22,37 @@ public class GrantDataSeeder {
 
     @EventListener(ApplicationReadyEvent.class)
     public void seed() {
-        long count = grantRepository.count();
-        if (count > 0) {
-            log.info("Grants already seeded ({} records). Skipping.", count);
-            return;
-        }
-
         try {
-            grantRepository.saveAll(sampleGrants());
+            List<Grant> currentGrants = grantRepository.findAll();
+            List<Grant> freshGrants = sampleGrants();
+            if (currentGrants.isEmpty()) {
+                grantRepository.saveAll(freshGrants);
+                log.info("Seeded {} new grants.", freshGrants.size());
+            } else {
+                boolean updated = false;
+                for (Grant fresh : freshGrants) {
+                    Optional<Grant> existingOpt = currentGrants.stream()
+                        .filter(g -> g.getTitle().equals(fresh.getTitle()))
+                        .findFirst();
+                    if (existingOpt.isPresent()) {
+                        Grant existing = existingOpt.get();
+                        if (existing.getApplicationUrl() != null && existing.getApplicationUrl().contains("example.com")) {
+                            existing.setApplicationUrl(fresh.getApplicationUrl());
+                            existing.setSourceUrl(fresh.getSourceUrl());
+                            grantRepository.save(existing);
+                            updated = true;
+                        }
+                    } else {
+                        grantRepository.save(fresh);
+                        updated = true;
+                    }
+                }
+                if (updated) {
+                    log.info("Updated existing seeded grants with new URLs.");
+                } else {
+                    log.info("Grants already seeded and up to date.");
+                }
+            }
         } catch (Exception ex) {
             log.warn("Grant seeding failed: {}", ex.getMessage());
         }
@@ -40,50 +64,50 @@ public class GrantDataSeeder {
                 "A prestigious fellowship for early-career researchers studying climate adaptation and resilience.",
                 "Open to doctoral researchers and postdocs with a demonstrated record of climate-related work.",
                 "Shortlist in two rounds, then final interviews in six weeks.",
-                "https://example.com/apply/climate-research-fellowship",
-                "https://example.com/grants/climate-research-fellowship"),
+                "https://ukri.org/funding/",
+                "https://ukri.org/funding/"),
             grant("STEM Scholars Award", "Future Minds Foundation", "Scholarship", "Computer Science", "US", "United States", 50000, "USD", LocalDate.now().plusDays(75),
                 "Merit-based funding for students building software, data, and AI projects with social impact.",
                 "Applicants must maintain strong academic standing and show evidence of community contribution.",
                 "Awards announced one month after the spring cycle closes.",
-                "https://example.com/apply/stem-scholars",
-                "https://example.com/grants/stem-scholars"),
+                "https://www.nsf.gov/funding/",
+                "https://www.nsf.gov/funding/"),
             grant("Global Health Innovation Grant", "WellSpring Alliance", "Research Grant", "Public Health", "KE", "Kenya", 120000, "USD", LocalDate.now().plusDays(41),
                 "Supports field-based pilots that improve access to primary care and maternal health outcomes.",
                 "Teams from universities, NGOs, and hospitals may apply with a local implementation partner.",
                 "Select projects begin with a 12-week prototyping phase.",
-                "https://example.com/apply/global-health",
-                "https://example.com/grants/global-health"),
+                "https://wellcome.org/grant-funding/schemes",
+                "https://wellcome.org/grant-funding/schemes"),
             grant("Creative Futures Residency", "Northstar Arts Council", "Fellowship", "Arts", "CA", "Canada", 30000, "CAD", LocalDate.now().plusDays(18),
                 "Residency funding for artists blending digital media, public art, and civic engagement.",
                 "Open to individual artists and small collectives with a clear exhibition plan.",
                 "Residencies run for six months with a midpoint critique and final showcase.",
-                "https://example.com/apply/creative-futures",
-                "https://example.com/grants/creative-futures"),
+                "https://canadacouncil.ca/funding",
+                "https://canadacouncil.ca/funding/"),
             grant("Community Impact Microgrant", "Civic Spark Lab", "Scholarship", "Education", "AU", "Australia", 15000, "AUD", LocalDate.now().plusDays(58),
                 "Microgrants for student groups running community learning and mentoring programs.",
                 "Student-led nonprofits, school clubs, and youth collectives may apply.",
                 "Awards are issued on a rolling basis with decisions every 30 days.",
-                "https://example.com/apply/community-impact",
-                "https://example.com/grants/community-impact"),
+                "https://www.grants.gov.au/",
+                "https://www.grants.gov.au/"),
             grant("Women in Engineering Scholarship", "Atlas Industries", "Scholarship", "Engineering", "DE", "Germany", 60000, "EUR", LocalDate.now().plusDays(91),
                 "Supports women pursuing graduate study in mechanical, electrical, and systems engineering.",
                 "Applicants must demonstrate leadership and a commitment to STEM mentorship.",
                 "Applications are reviewed by a panel of industry and university leaders.",
-                "https://example.com/apply/women-engineering",
-                "https://example.com/grants/women-engineering"),
+                "https://www.daad.de/en/",
+                "https://www.daad.de/en/"),
             grant("Data for Good Research Grant", "Open Evidence Fund", "Research Grant", "Data Science", "US", "United States", 98000, "USD", LocalDate.now().plusDays(32),
                 "Funding for research that uses data science to improve civic systems and public outcomes.",
                 "Principal investigators and cross-functional research teams are encouraged to apply.",
                 "Recipients report progress every quarter and present findings in a final symposium.",
-                "https://example.com/apply/data-for-good",
-                "https://example.com/grants/data-for-good"),
+                "https://www.fordfoundation.org/work/our-grants/",
+                "https://www.fordfoundation.org/work/our-grants/"),
             grant("Entrepreneurship Seed Fellowship", "Harbor Launchpad", "Fellowship", "Business", "SG", "Singapore", 85000, "SGD", LocalDate.now().plusDays(64),
                 "Seed support for founders developing scalable solutions in climate, logistics, or fintech.",
                 "Founders must have a prototype, incorporated entity, and a viable go-to-market plan.",
                 "The fellowship includes an accelerator sprint and demo day exposure.",
-                "https://example.com/apply/entrepreneurship-seed",
-                "https://example.com/grants/entrepreneurship-seed")
+                "https://www.startupsg.gov.sg/",
+                "https://www.startupsg.gov.sg/")
         );
     }
 

@@ -24,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -49,6 +50,8 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                 // Public auth endpoints
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                // Public uploads
+                .requestMatchers("/uploads/**").permitAll()
                 // Public health check
                 .requestMatchers("/actuator/health").permitAll()
                 // All other endpoints require authentication
@@ -63,7 +66,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(corsProperties.allowedOrigins());
+        List<String> origins = corsProperties.allowedOrigins();
+        if (origins == null || origins.isEmpty()) {
+            String envOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+            if (envOrigins != null && !envOrigins.isBlank()) {
+                origins = Arrays.stream(envOrigins.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList();
+            }
+        }
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);   // Required for httpOnly cookies

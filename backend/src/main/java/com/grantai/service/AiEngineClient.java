@@ -27,6 +27,7 @@ public class AiEngineClient {
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final RateLimiterService rateLimiterService;
 
     @Value("${ai-engine.url:http://localhost:8000}")
     private String aiEngineUrl;
@@ -40,8 +41,9 @@ public class AiEngineClient {
     @Value("${ai-engine.interview-timeout-seconds:25}")
     private long interviewTimeoutSeconds;
 
-    public AiEngineClient(ObjectMapper objectMapper) {
+    public AiEngineClient(ObjectMapper objectMapper, RateLimiterService rateLimiterService) {
         this.objectMapper = objectMapper;
+        this.rateLimiterService = rateLimiterService;
         this.httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(5))
@@ -50,6 +52,11 @@ public class AiEngineClient {
 
     public Map<String, ScoreResult> fetchScores(ProfileResponse profile, Map<String, Object> filters, int nResults) {
         if (profile == null) {
+            return Map.of();
+        }
+
+        if (!rateLimiterService.isAllowed(profile.userId())) {
+            log.warn("Rate limit exceeded for user: {}. Throttling AI score fetch.", profile.userId());
             return Map.of();
         }
 
@@ -110,6 +117,44 @@ public class AiEngineClient {
         } catch (IOException ex) {
             log.warn("AI match request failed: {}", ex.getMessage());
             return Map.of();
+        }
+    }
+
+    public String compareGrants(Map<String, Object> profile, java.util.List<String> grantIds) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("profile", profile != null ? profile : Map.of());
+        payload.put("grantIds", grantIds != null ? grantIds : java.util.List.of());
+
+        try {
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(aiEngineUrl.replaceAll("/$", "") + "/ai/compare"))
+                .timeout(Duration.ofSeconds(matchTimeoutSeconds))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+
+            String apiKey = resolveApiKey();
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("X-API-Key", apiKey);
+            }
+
+            HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.warn("AI compare request failed with status {} from {}. Body: {}", response.statusCode(), aiEngineUrl, truncate(response.body()));
+                return "No recommendation could be generated.";
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            return root.path("recommendation").asText("No recommendation could be generated.");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("AI compare request interrupted: {}", ex.getMessage());
+            return "No recommendation could be generated.";
+        } catch (HttpTimeoutException ex) {
+            log.warn("AI compare request timed out after {} seconds", matchTimeoutSeconds);
+            return "No recommendation could be generated.";
+        } catch (IOException ex) {
+            log.warn("AI compare request failed: {}", ex.getMessage());
+            return "No recommendation could be generated.";
         }
     }
 

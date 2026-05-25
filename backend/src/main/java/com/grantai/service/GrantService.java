@@ -8,16 +8,22 @@ import com.grantai.entity.Grant;
 import com.grantai.repository.GrantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -37,6 +43,8 @@ public class GrantService {
     private final GrantRepository grantRepository;
     private final ProfileService profileService;
     private final AiEngineClient aiEngineClient;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public GrantSearchResponse search(
@@ -80,10 +88,49 @@ public class GrantService {
         }
 
         Map<String, Object> filters = buildAiFilters(normalizeText(q), field, country, type, minAmount, maxDeadline);
-        Map<String, AiEngineClient.ScoreResult> aiScores = aiEngineClient.fetchScores(profile, filters, Math.max(pageSize * (pageNumber + 1), pageSize));
+        final Map<String, AiEngineClient.ScoreResult> aiScores;
+
+        if (profile != null && profile.isProfileComplete()) {
+            String filtersHash = "";
+            try {
+                String serializedFilters = objectMapper.writeValueAsString(filters);
+                filtersHash = DigestUtils.md5DigestAsHex(serializedFilters.getBytes(StandardCharsets.UTF_8));
+            } catch (Exception ex) {
+                log.warn("Failed to serialize filters for hashing: {}", ex.getMessage());
+                filtersHash = String.valueOf(filters.hashCode());
+            }
+
+            String redisKey = String.format("ai:scores:%s:%s", profile.userId(), filtersHash);
+            Map<String, AiEngineClient.ScoreResult> cachedScores = null;
+            try {
+                String cached = redisTemplate.opsForValue().get(redisKey);
+                if (cached != null) {
+                    cachedScores = objectMapper.readValue(cached, new TypeReference<Map<String, AiEngineClient.ScoreResult>>() {});
+                }
+            } catch (Exception ex) {
+                log.warn("Error reading from Redis cache: {}", ex.getMessage());
+            }
+
+            if (cachedScores == null) {
+                Map<String, AiEngineClient.ScoreResult> fetched = aiEngineClient.fetchScores(profile, filters, pageSize);
+                if (fetched != null && !fetched.isEmpty()) {
+                    try {
+                        String serialized = objectMapper.writeValueAsString(fetched);
+                        redisTemplate.opsForValue().set(redisKey, serialized, Duration.ofMinutes(5));
+                    } catch (Exception ex) {
+                        log.warn("Error writing to Redis cache: {}", ex.getMessage());
+                    }
+                }
+                aiScores = fetched != null ? fetched : Map.of();
+            } else {
+                aiScores = cachedScores;
+            }
+        } else {
+            aiScores = Map.of();
+        }
 
         List<GrantSummaryResponse> items = grants.getContent().stream()
-            .map(grant -> toSummary(grant, profile, aiScores.get(grant.getId())))
+            .map(grant -> toSummary(grant, profile, aiScores))
             .collect(Collectors.toList());
 
         return new GrantSearchResponse(
@@ -102,13 +149,18 @@ public class GrantService {
         Grant grant = grantRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found"));
 
-        AiEngineClient.ScoreResult aiScore = aiEngineClient.fetchScores(
-            profile,
-            buildAiFilters(null, grant.getField(), grant.getCountryName(), grant.getGrantType(), grant.getAmount(), grant.getDeadline()),
-            1
-        ).get(grant.getId());
+        final Map<String, AiEngineClient.ScoreResult> aiScores;
+        if (profile != null && profile.isProfileComplete()) {
+            aiScores = aiEngineClient.fetchScores(
+                profile,
+                buildAiFilters(null, grant.getField(), grant.getCountryName(), grant.getGrantType(), grant.getAmount(), grant.getDeadline()),
+                1
+            );
+        } else {
+            aiScores = Map.of();
+        }
 
-        GrantSummaryResponse summary = toSummary(grant, profile, aiScore);
+        GrantSummaryResponse summary = toSummary(grant, profile, aiScores);
         return new GrantDetailResponse(
             summary.id(),
             summary.title(),
@@ -133,6 +185,24 @@ public class GrantService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, String> compare(String userEmail, Map<String, Object> providedProfile, List<String> grantIds) {
+        if (grantIds == null || grantIds.size() < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select at least two grants to compare");
+        }
+
+        Map<String, Object> profilePayload = providedProfile != null ? providedProfile : Map.of();
+        if (profilePayload.isEmpty()) {
+            ProfileResponse profile = loadProfile(userEmail);
+            if (profile != null) {
+                profilePayload = objectMapper.convertValue(profile, new TypeReference<Map<String, Object>>() {});
+            }
+        }
+
+        String recommendation = aiEngineClient.compareGrants(profilePayload, grantIds);
+        return Map.of("recommendation", recommendation);
+    }
+
     private ProfileResponse loadProfile(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {
             return null;
@@ -145,11 +215,20 @@ public class GrantService {
         }
     }
 
-    private GrantSummaryResponse toSummary(Grant grant, ProfileResponse profile, AiEngineClient.ScoreResult scoreResult) {
-        int score = scoreResult != null ? clamp(scoreResult.score()) : calculateHeuristicScore(profile, grant);
-        String reasoning = scoreResult != null
-            ? scoreResult.reasoning()
-            : buildHeuristicReasoning(profile, grant, score);
+    private GrantSummaryResponse toSummary(Grant grant, ProfileResponse profile, Map<String, AiEngineClient.ScoreResult> aiScores) {
+        AiEngineClient.ScoreResult scoreResult = aiScores != null ? aiScores.get(grant.getId()) : null;
+        final int score;
+        final String reasoning;
+        if (aiScores == null || aiScores.isEmpty()) {
+            score = 50;
+            reasoning = "Complete your profile for personalised match scoring.";
+        } else if (scoreResult != null) {
+            score = clamp(scoreResult.score());
+            reasoning = scoreResult.reasoning();
+        } else {
+            score = calculateHeuristicScore(profile, grant);
+            reasoning = buildHeuristicReasoning(profile, grant, score);
+        }
 
         return new GrantSummaryResponse(
             grant.getId(),

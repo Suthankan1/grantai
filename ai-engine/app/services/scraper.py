@@ -6,7 +6,6 @@ import json
 import re
 from collections.abc import Iterable
 from datetime import datetime
-from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
@@ -18,93 +17,71 @@ from app.core.embeddings import embed_batch
 from app.db import save_grants
 
 
-GRANTS_GOV_URL = "https://www.grants.gov/grantsws/OppSearch"
+# ── Source URLs ──────────────────────────────────────────────────────────────
+
+# Grants.gov REST search API (no auth required).
+# POST with flat JSON body; response: {"data": {"oppHits": [...], ...}}
+GRANTS_GOV_URL = "https://api.grants.gov/v1/api/search2"
+GRANTS_GOV_BODY: dict[str, Any] = {
+    "keyword": "fellowship grant scholarship",
+    "oppStatuses": "posted|forecasted",
+    "rows": 100,
+    "startRecordNum": 0,
+}
+
+# Opportunity Desk RSS feed (publicly listed, robots.txt allows crawlers).
 OPPORTUNITY_DESK_RSS = "https://opportunitydesk.org/feed/"
 
-SCHOLARSHIP_URLS = [
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-type/",
-    "https://www.fastweb.com/college-scholarships",
-    "https://www.bold.org/scholarships/",
-    "https://www.niche.com/colleges/scholarships/",
-    "https://www.unigo.com/scholarships",
-    "https://www.cappex.com/scholarships",
-    "https://www.collegedata.com/resources/scholarships",
-    "https://www.chegg.com/scholarships",
-    "https://www.collegeboard.org/scholarships",
-    "https://www.salliemae.com/college-planning/financial-aid/scholarships/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarship-directory/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-state/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-major/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-minority/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-activity/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-interest/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-grade-level/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-career/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-demographic/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-sport/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-organization/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-service/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-employer/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-women/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-men/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-veterans/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-parents/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-high-school-seniors/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-undergraduate-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-graduate-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-online-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-international-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-athletes/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-arts-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-stem-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-business-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-engineering-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-nursing-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-medical-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-law-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-teachers/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-education-majors/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-military-families/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-first-generation-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-low-income-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-minority-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-black-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-hispanic-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-asian-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-native-american-students/",
-    "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-for-lgbt-students/",
-]
+# NSF Award Search API – structured JSON, no auth required.
+NSF_AWARDS_URL = "https://api.nsf.gov/services/v1/awards.json"
+NSF_AWARDS_PARAMS = {"keyword": "fellowship", "printFields": "id,title,abstractText,agency,awardeeName,date,fundsObligatedAmt"}
+
+# World Bank Projects search API – structured JSON, no auth required.
+# Returns {"projects": {"<id>": {id, project_name, totalamt, boardapprovaldate, url, project_abstract}, ...}}
+WORLD_BANK_URL = "https://search.worldbank.org/api/v2/projects"
+WORLD_BANK_PARAMS: dict[str, Any] = {
+    "format": "json",
+    "fl": "id,project_name,boardapprovaldate,totalamt,pdo,url,project_abstract",
+    "rows": 100,
+}
 
 
-class _MetaParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.title = ""
-        self.description = ""
-        self._capture_title = False
-        self._title_parts: list[str] = []
+# ── Robots.txt helpers ────────────────────────────────────────────────────────
 
-    def handle_starttag(self, tag: str, attrs):  # type: ignore[override]
-        attrs_dict = dict(attrs)
-        if tag == "title":
-            self._capture_title = True
-        if tag == "meta":
-            name = attrs_dict.get("name", "").lower()
-            prop = attrs_dict.get("property", "").lower()
-            content = attrs_dict.get("content", "")
-            if name == "description" or prop in {"og:description", "twitter:description"}:
-                if content and not self.description:
-                    self.description = content.strip()
+async def _is_allowed(client: httpx.AsyncClient, url: str) -> bool:
+    """Return True if the URL is (probably) allowed by robots.txt.
 
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "title":
-            self._capture_title = False
-            self.title = "".join(self._title_parts).strip()
+    Only checks ``User-agent: *`` Disallow directives.  Errs on the side of
+    allowing when the robots.txt is unreachable or malformed.
+    """
+    parsed = urlparse(url)
+    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+    try:
+        resp = await client.get(robots_url, timeout=10.0)
+        if resp.status_code != 200:
+            return True  # no robots.txt → assume allowed
+        text = resp.text
+    except httpx.HTTPError:
+        return True  # unreachable → assume allowed
 
-    def handle_data(self, data: str) -> None:
-        if self._capture_title:
-            self._title_parts.append(data)
+    path = parsed.path or "/"
+    in_star_section = False
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        lower = line.lower()
+        if lower.startswith("user-agent:"):
+            agent = line.split(":", 1)[1].strip()
+            in_star_section = agent == "*"
+        elif lower.startswith("disallow:") and in_star_section:
+            disallowed = line.split(":", 1)[1].strip()
+            if disallowed and path.startswith(disallowed):
+                return False
+    return True
 
+
+# ── Shared normalisation helpers ──────────────────────────────────────────────
 
 def _fallback_identifier(*parts: str) -> str:
     seed = "|".join(part.strip().lower() for part in parts if part)
@@ -157,21 +134,32 @@ def _normalize_deadline(value: Any) -> str:
 
 
 def _normalize_grant(payload: dict[str, Any], source_url: str) -> dict[str, Any]:
-    title = str(payload.get("title") or payload.get("name") or payload.get("oppTitle") or payload.get("subject") or "").strip()
-    description = str(
-        payload.get("description")
-        or payload.get("summary")
-        or payload.get("content")
-        or payload.get("details")
-        or ""
+    title = str(
+        payload.get("title") or payload.get("name") or payload.get("oppTitle")
+        or payload.get("subject") or ""
     ).strip()
-    provider = str(payload.get("provider") or payload.get("organization") or payload.get("agency") or payload.get("source") or "").strip()
-    amount = _normalize_amount(payload.get("amount") or payload.get("awardAmount") or payload.get("value"))
-    deadline = _normalize_deadline(payload.get("deadline") or payload.get("closingDate") or payload.get("dueDate") or payload.get("date"))
+    description = str(
+        payload.get("description") or payload.get("summary") or payload.get("content")
+        or payload.get("details") or payload.get("abstractText") or ""
+    ).strip()
+    provider = str(
+        payload.get("provider") or payload.get("organization") or payload.get("agency")
+        or payload.get("awardeeName") or payload.get("source") or ""
+    ).strip()
+    amount = _normalize_amount(
+        payload.get("amount") or payload.get("awardAmount") or payload.get("fundsObligatedAmt") or payload.get("value")
+    )
+    deadline = _normalize_deadline(
+        payload.get("deadline") or payload.get("closingDate") or payload.get("dueDate")
+        or payload.get("date") or payload.get("closeDate")
+    )
     body = " ".join([title, description, provider, source_url])
 
-    normalized = {
-        "id": str(payload.get("id") or payload.get("guid") or payload.get("uuid") or _fallback_identifier(title, source_url)),
+    return {
+        "id": str(
+            payload.get("id") or payload.get("guid") or payload.get("uuid")
+            or _fallback_identifier(title, source_url)
+        ),
         "title": title or "Untitled opportunity",
         "provider": provider or urlparse(source_url).netloc,
         "description": description or title,
@@ -182,8 +170,9 @@ def _normalize_grant(payload: dict[str, Any], source_url: str) -> dict[str, Any]
         "type": str(payload.get("type") or payload.get("opportunityType") or "Grant").strip() or "Grant",
         "source_url": source_url,
     }
-    return normalized
 
+
+# ── Source-specific parsers ───────────────────────────────────────────────────
 
 def _parse_json_payload(text: str) -> list[dict[str, Any]]:
     try:
@@ -194,34 +183,12 @@ def _parse_json_payload(text: str) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [item for item in payload if isinstance(item, dict)]
     if isinstance(payload, dict):
-        for key in ("opportunities", "results", "data", "items", "records"):
+        for key in ("opportunities", "oppHits", "results", "data", "items", "records"):
             value = payload.get(key)
             if isinstance(value, list):
                 return [item for item in value if isinstance(item, dict)]
         return [payload]
     return []
-
-
-def _parse_grants_gov_payload(text: str) -> list[dict[str, Any]]:
-    items = _parse_json_payload(text)
-    if items:
-        return items
-
-    try:
-        root = ET.fromstring(text)
-    except ET.ParseError:
-        return []
-
-    parsed: list[dict[str, Any]] = []
-    for node in root.iter():
-        entry: dict[str, Any] = {}
-        for child in list(node):
-            tag = child.tag.split("}")[-1]
-            if child.text and child.text.strip():
-                entry[tag] = child.text.strip()
-        if entry:
-            parsed.append(entry)
-    return parsed
 
 
 def _parse_rss(text: str) -> list[dict[str, Any]]:
@@ -248,55 +215,64 @@ def _parse_rss(text: str) -> list[dict[str, Any]]:
     return items
 
 
-def _parse_html(text: str, source_url: str) -> dict[str, Any]:
-    parser = _MetaParser()
-    parser.feed(text)
-    title = parser.title or source_url
-    description = parser.description or re.sub(r"\s+", " ", text)[:500]
-    return _normalize_grant(
-        {
-            "id": _fallback_identifier(title, source_url),
-            "title": title,
-            "description": description,
-            "provider": urlparse(source_url).netloc,
-            "type": "Scholarship",
-        },
-        source_url,
-    )
-
-
-def _dedupe_grants(grants: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    seen: set[str] = set()
-    deduped: list[dict[str, Any]] = []
-    for grant in grants:
-        grant_id = grant.get("id") or _fallback_identifier(grant.get("title", ""), grant.get("source_url", ""))
-        if grant_id in seen:
-            continue
-        seen.add(grant_id)
-        deduped.append(grant)
-    return deduped
-
+# ── Fetch functions ───────────────────────────────────────────────────────────
 
 async def fetch_grants_gov(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """POST to api.grants.gov/v1/api/search2 with a JSON body.
+
+    Response envelope: {"data": {"oppHits": [{id, title, agency, closeDate, ...}], ...}}
+    """
+    if not await _is_allowed(client, GRANTS_GOV_URL):
+        return []
     try:
-        response = await client.get(GRANTS_GOV_URL)
+        response = await client.post(
+            GRANTS_GOV_URL,
+            json=GRANTS_GOV_BODY,
+            headers={"Content-Type": "application/json"},
+        )
         response.raise_for_status()
     except httpx.HTTPError:
         return []
 
-    text = response.text
-    if "json" in response.headers.get("content-type", "").lower() or text.lstrip().startswith(("[", "{")):
-        payloads = _parse_grants_gov_payload(text)
-    else:
-        payloads = _parse_json_payload(text)
+    try:
+        envelope = response.json()
+    except Exception:
+        return []
 
-    grants = []
-    for payload in payloads[:100]:
-        grants.append(_normalize_grant(payload, payload.get("source_url") or GRANTS_GOV_URL))
+    opp_hits: list[dict[str, Any]] = (
+        (envelope.get("data") or {}).get("oppHits")
+        or []
+    )
+    if not isinstance(opp_hits, list):
+        opp_hits = []
+
+    grants: list[dict[str, Any]] = []
+    for hit in opp_hits[:100]:
+        opp_id = hit.get("id", "")
+        link = (
+            f"https://www.grants.gov/search-results-detail/{opp_id}"
+            if opp_id
+            else GRANTS_GOV_URL
+        )
+        grants.append(
+            _normalize_grant(
+                {
+                    "id": opp_id,
+                    "title": hit.get("title", ""),
+                    "provider": hit.get("agency", ""),
+                    "deadline": hit.get("closeDate", ""),
+                    "type": "Grant",
+                },
+                link,
+            )
+        )
     return grants
 
 
 async def fetch_opportunity_desk(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Fetch the Opportunity Desk RSS feed."""
+    if not await _is_allowed(client, OPPORTUNITY_DESK_RSS):
+        return []
     try:
         response = await client.get(OPPORTUNITY_DESK_RSS)
         response.raise_for_status()
@@ -309,34 +285,131 @@ async def fetch_opportunity_desk(client: httpx.AsyncClient) -> list[dict[str, An
         return []
 
 
-async def fetch_scholarship_pages(client: httpx.AsyncClient, urls: list[str]) -> list[dict[str, Any]]:
-    semaphore = asyncio.Semaphore(8)
+async def fetch_nsf_awards(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Fetch NSF award search results (structured JSON, no auth)."""
+    if not await _is_allowed(client, NSF_AWARDS_URL):
+        return []
+    try:
+        response = await client.get(NSF_AWARDS_URL, params=NSF_AWARDS_PARAMS)
+        response.raise_for_status()
+    except httpx.HTTPError:
+        return []
 
-    async def _fetch(url: str) -> dict[str, Any] | None:
-        async with semaphore:
-            try:
-                response = await client.get(url)
-                response.raise_for_status()
-            except httpx.HTTPError:
-                return None
-            return _parse_html(response.text, url)
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        return []
 
-    pages = await asyncio.gather(*(_fetch(url) for url in urls))
-    return [page for page in pages if page is not None]
+    # NSF JSON: {"response": {"award": [...]}}
+    awards = (data.get("response") or {}).get("award") or []
+    grants: list[dict[str, Any]] = []
+    for award in awards[:100]:
+        award_id = award.get("id", "")
+        link = f"https://www.nsf.gov/awardsearch/showAward?AWD_ID={award_id}" if award_id else NSF_AWARDS_URL
+        grants.append(
+            _normalize_grant(
+                {
+                    "id": award_id,
+                    "title": award.get("title", ""),
+                    "description": award.get("abstractText", ""),
+                    "provider": award.get("agency", "NSF"),
+                    "amount": award.get("fundsObligatedAmt", ""),
+                    "deadline": award.get("date", ""),
+                    "type": "Fellowship/Award",
+                },
+                link,
+            )
+        )
+    return grants
 
+
+async def fetch_world_bank_grants(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Fetch World Bank project search results (structured JSON, no auth).
+
+    Response envelope: {"projects": {"<id>": {id, project_name, totalamt, ...}, ...}}
+    """
+    if not await _is_allowed(client, WORLD_BANK_URL):
+        return []
+    try:
+        response = await client.get(WORLD_BANK_URL, params=WORLD_BANK_PARAMS)
+        response.raise_for_status()
+    except httpx.HTTPError:
+        return []
+
+    try:
+        envelope = response.json()
+    except Exception:
+        return []
+
+    projects_raw = envelope.get("projects") or {}
+    # The API returns a dict keyed by project ID
+    if isinstance(projects_raw, dict):
+        project_list = list(projects_raw.values())
+    elif isinstance(projects_raw, list):
+        project_list = projects_raw
+    else:
+        project_list = []
+
+    grants: list[dict[str, Any]] = []
+    for item in project_list[:100]:
+        if not isinstance(item, dict):
+            continue
+        proj_id = str(item.get("id") or "")
+        name = str(item.get("project_name") or "").strip()
+        # project_abstract is wrapped in a {"cdata!": "..."} object
+        abstract_raw = item.get("project_abstract") or item.get("pdo") or {}
+        description = (
+            abstract_raw.get("cdata!", "")
+            if isinstance(abstract_raw, dict)
+            else str(abstract_raw)
+        ).strip()
+        link = str(item.get("url") or WORLD_BANK_URL)
+        grants.append(
+            _normalize_grant(
+                {
+                    "id": proj_id or _fallback_identifier(name, link),
+                    "title": name,
+                    "description": description,
+                    "provider": "World Bank",
+                    "amount": str(item.get("totalamt") or ""),
+                    "deadline": str(item.get("boardapprovaldate") or ""),
+                    "type": "Development Grant",
+                    "country": "Global",
+                },
+                link,
+            )
+        )
+    return grants
+
+
+# ── Deduplication ─────────────────────────────────────────────────────────────
+
+def _dedupe_grants(grants: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for grant in grants:
+        grant_id = grant.get("id") or _fallback_identifier(
+            grant.get("title", ""), grant.get("source_url", "")
+        )
+        if grant_id in seen:
+            continue
+        seen.add(grant_id)
+        deduped.append(grant)
+    return deduped
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 async def scrape_all_sources() -> list[dict[str, Any]]:
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-        grants_gov_task = fetch_grants_gov(client)
-        opportunity_task = fetch_opportunity_desk(client)
-        scholarship_task = fetch_scholarship_pages(client, SCHOLARSHIP_URLS)
-        grants_gov, opportunity_desk, scholarship_pages = await asyncio.gather(
-            grants_gov_task,
-            opportunity_task,
-            scholarship_task,
+        grants_gov, opportunity_desk, nsf_awards, world_bank = await asyncio.gather(
+            fetch_grants_gov(client),
+            fetch_opportunity_desk(client),
+            fetch_nsf_awards(client),
+            fetch_world_bank_grants(client),
         )
 
-    normalized = _dedupe_grants([*grants_gov, *opportunity_desk, *scholarship_pages])
+    normalized = _dedupe_grants([*grants_gov, *opportunity_desk, *nsf_awards, *world_bank])
     documents = [f"{grant['title']}\n\n{grant.get('description', '')}".strip() for grant in normalized]
     embeddings = embed_batch(documents)
     for grant, embedding in zip(normalized, embeddings, strict=False):

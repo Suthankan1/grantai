@@ -5,9 +5,11 @@ import com.grantai.dto.SaveSessionRequest;
 import com.grantai.service.InterviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,7 +56,7 @@ public class InterviewController {
     public ResponseEntity<List<InterviewSessionResponse>> getSessions(
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        List<InterviewSessionResponse> sessions = interviewService.getSessions(userDetails.getUsername());
+        List<InterviewSessionResponse> sessions = interviewService.getSessions(requireUsername(userDetails));
         return ResponseEntity.ok(sessions);
     }
 
@@ -63,7 +65,14 @@ public class InterviewController {
         @AuthenticationPrincipal UserDetails userDetails,
         @Valid @RequestBody SaveSessionRequest request
     ) {
-        InterviewSessionResponse saved = interviewService.saveSession(userDetails.getUsername(), request);
+        InterviewSessionResponse saved = interviewService.saveSession(requireUsername(userDetails), request);
         return ResponseEntity.ok(saved);
+    }
+
+    private String requireUsername(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return userDetails.getUsername();
     }
 }

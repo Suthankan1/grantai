@@ -50,6 +50,8 @@ function buildFetchInit(options: RequestOptions = {}): RequestInit {
 
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  } else if (headers.get("Content-Type") === "none") {
+    headers.delete("Content-Type");
   }
 
   return {

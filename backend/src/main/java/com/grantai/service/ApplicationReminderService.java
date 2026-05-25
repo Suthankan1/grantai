@@ -3,7 +3,9 @@ package com.grantai.service;
 import com.grantai.entity.Grant;
 import com.grantai.entity.TrackerEntry;
 import com.grantai.entity.User;
+import com.grantai.entity.UserProfile;
 import com.grantai.repository.TrackerRepository;
+import com.grantai.repository.UserProfileRepository;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -28,6 +30,7 @@ import java.util.List;
 public class ApplicationReminderService {
 
     private final TrackerRepository trackerRepository;
+    private final UserProfileRepository userProfileRepository;
 
     @Value("${sendgrid.api-key:}")
     private String sendGridApiKey;
@@ -66,6 +69,16 @@ public class ApplicationReminderService {
 
         for (TrackerEntry entry : entries) {
             long daysLeft = ChronoUnit.DAYS.between(today, entry.getGrant().getDeadline());
+
+            boolean emailRemindersEnabled = userProfileRepository.findByUserId(entry.getUser().getId())
+                .map(UserProfile::isEmailReminders)
+                .orElse(true);
+
+            if (!emailRemindersEnabled) {
+                log.info("Skipping deadline reminder for user {} - email reminders disabled", entry.getUser().getEmail());
+                continue;
+            }
+
             try {
                 sendEmail(entry, daysLeft);
             } catch (Exception e) {
@@ -89,35 +102,22 @@ public class ApplicationReminderService {
             grantTitle
         );
 
-        String htmlContent = String.format(
-            "<!DOCTYPE html>" +
-            "<html>" +
-            "<body style='font-family: Arial, sans-serif; background-color: #05050c; color: #f3f4f6; padding: 20px;'>" +
-            "  <div style='max-width: 600px; margin: 0 auto; border: 1px solid #1f2937; background: #080810; border-radius: 12px; padding: 30px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);'>" +
-            "    <h2 style='color: #6c47ff; margin-bottom: 20px; border-bottom: 1px solid #1f2937; padding-bottom: 10px;'>Deadline intelligence Alert</h2>" +
-            "    <p>Dear %s,</p>" +
-            "    <p>This is a personalized alert from your <strong>GrantAI Application Tracker</strong>.</p>" +
-            "    <p>The deadline for your tracked application <strong>%s</strong>, offered by <strong>%s</strong>, is approaching fast:</p>" +
-            "    <div style='background-color: %s; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center; font-size: 1.2rem; font-weight: bold; color: #ffffff;'>" +
-            "      %d %s left (Deadline: %s)" +
-            "    </div>" +
-            "    <p>Current Application Status: <strong>%s</strong></p>" +
-            "    <p>We recommend wrapping up your cover letter and finalizing details to submit before the deadline.</p>" +
-            "    <p style='margin-top: 30px;'><a href='http://localhost:3000/tracker' style='display: inline-block; background-color: #6c47ff; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;'>View on Kanban Board</a></p>" +
-            "    <hr style='border: 0; border-top: 1px solid #1f2937; margin: 30px 0;'>" +
-            "    <p style='font-size: 0.8rem; color: #9ca3af;'>You are receiving this automated email reminder because you are tracking this grant in GrantAI.</p>" +
-            "  </div>" +
-            "</body>" +
-            "</html>",
-            recipientName,
-            grantTitle,
-            providerName,
-            daysLeft == 1 ? "#ef4444" : (daysLeft <= 3 ? "#f59e0b" : "#10b981"),
-            daysLeft,
-            daysLeft == 1 ? "day" : "days",
-            grant.getDeadline().toString(),
-            entry.getStatus()
-        );
+        long daysUntilDeadline = daysLeft;
+        String html = """
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="color: #6C47FF;">⏰ Deadline Reminder — %s</h2>
+              <p>Your application for <strong>%s</strong> (offered by %s) is due in <strong>%d day(s)</strong>.</p>
+              <a href="https://grantai.com/tracker" style="background:#6C47FF;color:#fff;padding:12px 24px;
+                 border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px;">
+                Open Application Tracker
+              </a>
+              <hr style="margin-top:32px;border:none;border-top:1px solid #eee;">
+              <p style="font-size:11px;color:#999;">
+                You received this because you track applications on GrantAI. 
+                <a href="https://grantai.com/settings/notifications">Unsubscribe</a>
+              </p>
+            </div>
+          """.formatted(grantTitle, grantTitle, providerName, daysUntilDeadline);
 
         if (sendGridApiKey == null || sendGridApiKey.trim().isEmpty()) {
             log.info("[MOCK EMAIL] SendGrid API Key not configured. Simulating email dispatch:");
@@ -125,13 +125,13 @@ public class ApplicationReminderService {
             log.info("  To: {} ({})", recipientEmail, recipientName);
             log.info("  Subject: {}", subject);
             log.info("  Days Left: {}", daysLeft);
-            log.info("  HTML Body Preview: {}", htmlContent.substring(0, Math.min(htmlContent.length(), 200)) + "...");
+            log.info("  HTML Body Preview: {}", html.substring(0, Math.min(html.length(), 200)) + "...");
             return;
         }
 
         Email from = new Email(sendGridFromEmail);
         Email to = new Email(recipientEmail);
-        Content content = new Content("text/html", htmlContent);
+        Content content = new Content("text/html", html);
         Mail mail = new Mail(from, subject, to, content);
 
         SendGrid sg = new SendGrid(sendGridApiKey);

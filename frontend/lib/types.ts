@@ -58,6 +58,15 @@ export interface GrantDetailApi extends GrantSummaryApi {
   updatedAt: string | null;
 }
 
+export interface GrantCompareRequestApi {
+  profile: Record<string, unknown>;
+  grantIds: string[];
+}
+
+export interface GrantCompareResponseApi {
+  recommendation: string;
+}
+
 export interface GrantSearchResponseApi {
   items: GrantSummaryApi[];
   page: number;
@@ -116,6 +125,7 @@ export interface TrackerEntryApi {
   coverLetterId: string | null;
   createdAt: string;
   updatedAt: string;
+  bookmarked: boolean;
 }
 
 export interface TrackerCreatePayload {

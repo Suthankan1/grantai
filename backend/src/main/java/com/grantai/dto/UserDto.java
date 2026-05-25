@@ -5,5 +5,6 @@ public record UserDto(
     String email,
     String fullName,
     String role,
-    boolean profileComplete
+    boolean profileComplete,
+    String profilePhotoUrl
 ) {}

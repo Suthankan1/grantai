@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from app.core.gemini import extract_json_payload, generate_text
@@ -123,21 +124,117 @@ Answer:
         text = generate_text(prompt)
         payload = extract_json_payload(text)
 
+        score = _extract_score(payload)
+        strengths = _extract_string_list(payload, "strengths")
+        areas_to_improve = _extract_string_list(payload, "areas_to_improve")
+        suggested_improvements = _extract_string_list(payload, "suggested_improvements")
+        suggested_answer = str(
+            payload.get("suggested_answer")
+            or payload.get("suggestedResponse")
+            or payload.get("answer")
+            or (suggested_improvements[0] if suggested_improvements else "")
+        ).strip()
+
         return {
-            "score": max(1, min(10, int(payload.get("score", 0) or 0))),
-            "strengths": payload.get("strengths") or [],
-            "areas_to_improve": payload.get("areas_to_improve") or [],
-            "suggested_improvements": payload.get("suggested_improvements") or [],
-            "suggested_answer": payload.get("suggested_answer") or (
-                (payload.get("suggested_improvements") or [""])[0]
-            ),
+            "score": score,
+            "strengths": strengths,
+            "areas_to_improve": areas_to_improve,
+            "suggested_improvements": suggested_improvements,
+            "suggested_answer": suggested_answer,
         }
     except Exception:
         # Graceful fallback — never let the endpoint 500
+        heuristic_score = _fallback_score(question, answer, grant)
         return {
-            "score": 0,
-            "strengths": [],
+            "score": heuristic_score,
+            "strengths": ["Your answer addresses the question directly."] if heuristic_score >= 5 else ["You made a start on the answer."],
             "areas_to_improve": ["AI feedback is temporarily unavailable. Please try again shortly."],
-            "suggested_improvements": ["Ensure the AI Engine is running and your Gemini API key has remaining quota."],
-            "suggested_answer": "",
+            "suggested_improvements": ["Add one concrete example, a result, and a plain-language impact statement."],
+            "suggested_answer": _build_fallback_suggested_answer(question, answer, grant),
         }
+
+
+def _extract_score(payload: dict[str, Any]) -> int:
+    raw_score = payload.get("score")
+    if raw_score is None:
+        raw_score = payload.get("compatibility_score")
+
+    if isinstance(raw_score, bool):
+        raw_score = None
+
+    if isinstance(raw_score, (int, float)):
+        return max(1, min(10, int(round(raw_score))))
+
+    if isinstance(raw_score, str):
+        match = re.search(r"\d+(?:\.\d+)?", raw_score)
+        if match:
+            return max(1, min(10, int(round(float(match.group(0))))))
+
+    raw_text = str(payload.get("raw") or "")
+    match = re.search(r'"score"\s*:\s*(\d+(?:\.\d+)?)', raw_text)
+    if match:
+        return max(1, min(10, int(round(float(match.group(1))))))
+
+    return 5
+
+
+def _extract_string_list(payload: dict[str, Any], key: str) -> list[str]:
+    value = payload.get(key)
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _fallback_score(question: str, answer: str, grant: dict[str, Any] | None) -> int:
+    answer_text = answer.strip()
+    if not answer_text:
+        return 1
+
+    score = 3
+    if len(answer_text) > 120:
+        score += 2
+    if len(answer_text) > 220:
+        score += 1
+
+    lower_answer = answer_text.lower()
+    if any(token in lower_answer for token in ("because", "example", "impact", "project", "research", "result")):
+        score += 2
+
+    lower_question = question.lower().strip()
+    if lower_question and any(token in lower_answer for token in _question_keywords(lower_question)):
+        score += 1
+
+    if grant:
+        grant_text = " ".join(str(grant.get(key) or "") for key in ("title", "provider", "field", "description")).lower()
+        if grant_text and any(token in lower_answer for token in _question_keywords(grant_text)):
+            score += 1
+
+    return max(1, min(10, score))
+
+
+def _question_keywords(text: str) -> list[str]:
+    keywords = []
+    for token in re.findall(r"[a-z]{4,}", text.lower()):
+        if token not in {"this", "that", "with", "your", "from", "have", "what", "would", "could", "should"}:
+            keywords.append(token)
+    return keywords[:8]
+
+
+def _build_fallback_suggested_answer(question: str, answer: str, grant: dict[str, Any] | None) -> str:
+    grant = grant or {}
+    title = str(grant.get("title") or "the opportunity").strip()
+    provider = str(grant.get("provider") or "the funder").strip()
+    field = str(grant.get("field") or "your field").strip()
+
+    if answer.strip():
+        return (
+            f"I would explain that {title} from {provider} supports work in {field}, and that my project focuses on a clear problem, a practical method, and measurable impact. "
+            f"In plain language, I would say the project helps turn a complex idea into something useful for real people."
+        )
+
+    return (
+        f"I am applying for {title} because it supports work in {field} and aligns with my goals. "
+        f"In simple terms, my project aims to solve a real problem by combining clear methods with measurable outcomes, so the work can make a practical difference."
+    )

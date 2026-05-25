@@ -7,9 +7,11 @@ import com.grantai.dto.TrackerResponse;
 import com.grantai.service.TrackerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +34,7 @@ public class TrackerController {
     public ResponseEntity<List<TrackerResponse>> list(
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(trackerService.list(userDetails.getUsername()));
+        return ResponseEntity.ok(trackerService.list(requireUsername(userDetails)));
     }
 
     @PostMapping
@@ -40,7 +42,7 @@ public class TrackerController {
         @AuthenticationPrincipal UserDetails userDetails,
         @Valid @RequestBody TrackerCreateRequest request
     ) {
-        return ResponseEntity.ok(trackerService.create(userDetails.getUsername(), request));
+        return ResponseEntity.ok(trackerService.create(requireUsername(userDetails), request));
     }
 
     @PutMapping("/{id}")
@@ -49,7 +51,7 @@ public class TrackerController {
         @PathVariable String id,
         @RequestBody TrackerUpdateRequest request
     ) {
-        return ResponseEntity.ok(trackerService.update(userDetails.getUsername(), id, request));
+        return ResponseEntity.ok(trackerService.update(requireUsername(userDetails), id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -57,7 +59,7 @@ public class TrackerController {
         @AuthenticationPrincipal UserDetails userDetails,
         @PathVariable String id
     ) {
-        trackerService.delete(userDetails.getUsername(), id);
+        trackerService.delete(requireUsername(userDetails), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -65,6 +67,13 @@ public class TrackerController {
     public ResponseEntity<DashboardStatsResponse> getStats(
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(trackerService.getStats(userDetails.getUsername()));
+        return ResponseEntity.ok(trackerService.getStats(requireUsername(userDetails)));
+    }
+
+    private String requireUsername(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return userDetails.getUsername();
     }
 }

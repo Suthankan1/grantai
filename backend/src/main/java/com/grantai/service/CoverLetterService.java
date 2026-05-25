@@ -111,6 +111,14 @@ public class CoverLetterService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public void delete(String userEmail, String letterId) {
+        User user = requireUser(userEmail);
+        CoverLetter letter = coverLetterRepository.findByIdAndUser_Id(letterId, user.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cover letter not found"));
+        coverLetterRepository.delete(letter);
+    }
+
     private void streamGeneration(SseEmitter emitter, ProfileResponse profile, Grant grant, CoverLetter letter) {
         StringBuilder content = new StringBuilder();
         ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();

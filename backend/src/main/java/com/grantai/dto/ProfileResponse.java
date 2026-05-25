@@ -20,4 +20,8 @@ public record ProfileResponse(
     Integer minGrantAmount,
     String deadlinePreference,
     boolean profileComplete
-) {}
+) {
+    public boolean isProfileComplete() {
+        return profileComplete;
+    }
+}
