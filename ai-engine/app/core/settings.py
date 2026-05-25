@@ -29,7 +29,7 @@ class Settings:
     environment: str = field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
     api_key: str = field(default_factory=lambda: os.getenv("AI_ENGINE_API_KEY", ""))
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", "")))
-    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite"))
+    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
     gemini_match_candidate_limit: int = field(default_factory=lambda: int(os.getenv("GEMINI_MATCH_CANDIDATE_LIMIT", "4")))
     gemini_match_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_MATCH_TIMEOUT_SECONDS", "12")))
     gemini_letter_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("GEMINI_LETTER_TIMEOUT_SECONDS", "8")))

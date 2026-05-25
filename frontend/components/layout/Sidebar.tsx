@@ -208,7 +208,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Desktop Sidebar (Permanent block) */}
       <aside className={cn(
-        "hidden md:block h-screen sticky top-0 shrink-0 border-r border-[rgba(240,240,255,0.05)] bg-[#080810]/70 z-30 transition-all duration-300",
+        "hidden md:block h-screen sticky top-0 shrink-0 self-start border-r border-[rgba(240,240,255,0.05)] bg-[#080810]/70 z-30 transition-all duration-300",
         isCollapsed ? "w-20" : "w-64"
       )}>
         {SidebarContent}

@@ -119,13 +119,25 @@ Answer:
 {answer}
 """.strip()
 
-    text = generate_text(prompt)
-    payload = extract_json_payload(text)
+    try:
+        text = generate_text(prompt)
+        payload = extract_json_payload(text)
 
-    return {
-        "score": max(1, min(10, int(payload.get("score", 0) or 0))),
-        "strengths": payload.get("strengths", []),
-        "areas_to_improve": payload.get("areas_to_improve", []),
-        "suggested_improvements": payload.get("suggested_improvements", []),
-        "suggested_answer": payload.get("suggested_answer", "") or (payload.get("suggested_improvements", [""])[0] if payload.get("suggested_improvements") else ""),
-    }
+        return {
+            "score": max(1, min(10, int(payload.get("score", 0) or 0))),
+            "strengths": payload.get("strengths") or [],
+            "areas_to_improve": payload.get("areas_to_improve") or [],
+            "suggested_improvements": payload.get("suggested_improvements") or [],
+            "suggested_answer": payload.get("suggested_answer") or (
+                (payload.get("suggested_improvements") or [""])[0]
+            ),
+        }
+    except Exception:
+        # Graceful fallback — never let the endpoint 500
+        return {
+            "score": 0,
+            "strengths": [],
+            "areas_to_improve": ["AI feedback is temporarily unavailable. Please try again shortly."],
+            "suggested_improvements": ["Ensure the AI Engine is running and your Gemini API key has remaining quota."],
+            "suggested_answer": "",
+        }

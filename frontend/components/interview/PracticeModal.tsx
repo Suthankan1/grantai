@@ -260,11 +260,11 @@ export function PracticeModal({
                   </div>
                   <div
                     className={`text-xl font-bold font-display px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${getScoreBadgeStyle(
-                      feedback.score
+                      feedback.score || 0
                     )}`}
                   >
                     <Sparkles className="h-4.5 w-4.5 text-amber-400 animate-pulse" />
-                    {feedback.score} / 10
+                    {feedback.score || 0} / 10
                   </div>
                 </motion.div>
 
@@ -274,7 +274,7 @@ export function PracticeModal({
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Strengths
                   </h4>
                   <ul className="space-y-1.5 pl-6 list-disc text-sm text-[var(--color-text)]/90">
-                    {feedback.strengths.map((str, i) => (
+                    {feedback.strengths?.map((str, i) => (
                       <li key={i} className="marker:text-emerald-400">
                         {str}
                       </li>
@@ -288,7 +288,7 @@ export function PracticeModal({
                     <AlertTriangle className="h-4 w-4 text-amber-400" /> Areas to Improve
                   </h4>
                   <ul className="space-y-1.5 pl-6 list-disc text-sm text-[var(--color-text)]/90">
-                    {feedback.areas_to_improve.map((area, i) => (
+                    {feedback.areas_to_improve?.map((area, i) => (
                       <li key={i} className="marker:text-amber-400">
                         {area}
                       </li>

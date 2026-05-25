@@ -61,6 +61,7 @@ services:
     environment:
       - ENVIRONMENT=development
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
       - AI_ENGINE_API_KEY=${AI_ENGINE_API_KEY:-grantai_dev_ai_key}
       - DATABASE_URL=postgresql://grantai:${POSTGRES_PASSWORD:-grantai_dev_secret}@postgres:5432/grantai
       - CHROMA_PERSIST_DIRECTORY=/app/data/chroma
